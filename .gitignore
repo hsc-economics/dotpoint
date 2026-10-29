@@ -1,0 +1,6 @@
+preview/
+site/
+__pycache__/
+submission-errors.md
+.DS_Store
+.claude/

@@ -1,0 +1,64 @@
+# Publishes suggestions you approve.
+# People suggest examples and statistics with the "Suggest an example or statistic" issue form.
+# Read the issue, edit it if anything needs fixing, then add the "approved" label. This workflow
+# turns it into an example card, runs the tests, saves it, republishes the site and closes the issue.
+# If something in the suggestion breaks the rules, it comments on the issue with what to fix.
+# Only the repository owner's label counts.
+name: Add an approved submission
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: add-submission
+  cancel-in-progress: false
+
+jobs:
+  add:
+    if: >-
+      github.event.label.name == 'approved' &&
+      contains(github.event.issue.labels.*.name, 'submission') &&
+      github.event.sender.login == github.repository_owner
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE: ${{ github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Turn the suggestion into an example card
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: python3 tools/add_submission.py "$ISSUE"
+      - name: Run the tests
+        run: sh tests/run_tests.sh
+      - name: Save, republish and close the issue
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/evidence.js
+          git commit -m "Add example from suggestion #$ISSUE"
+          git push
+          gh workflow run refresh-and-publish.yml --ref "${{ github.event.repository.default_branch }}"
+          gh issue comment "$ISSUE" --body "Approved and added to Dotpoint. It will be on the site in a few minutes."
+          gh issue close "$ISSUE" --reason completed
+      - name: Say what needs fixing
+        if: failure()
+        run: |
+          if [ -f submission-errors.md ]; then
+            gh issue comment "$ISSUE" --body-file submission-errors.md
+          else
+            gh issue comment "$ISSUE" --body "Dotpoint couldn't add this suggestion because a check failed. Open the Actions tab for details, fix the issue text, then remove and add the **approved** label again."
+          fi
+          gh issue edit "$ISSUE" --remove-label approved

@@ -1,0 +1,76 @@
+# Keeps Dotpoint up to date without Claude.
+# Every weekday evening (Sydney time) it downloads the latest RBA and ABS figures, runs the tests,
+# saves any new figures to the repository, and publishes the site to GitHub Pages.
+# It also publishes whenever you push a change to the main branch, and you can run it by hand
+# from the Actions tab ("Run workflow").
+name: Refresh statistics and publish
+
+on:
+  schedule:
+    - cron: "30 8 * * 1-5"   # 08:30 UTC = 7:30pm AEDT / 6:30pm AEST, after the RBA's daily tables update
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: refresh-and-publish
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Download the latest RBA and ABS figures
+        run: python3 tools/update_stats.py
+      - name: Run the tests
+        run: sh tests/run_tests.sh
+      - name: Save new figures
+        run: |
+          if git diff --quiet -- data/stats.js; then
+            echo "No new figures today."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/stats.js
+          git commit -m "Refresh statistics $(date -u +%Y-%m-%d)"
+          git push
+
+  publish:
+    needs: refresh
+    # Runs after a refresh, and on pushes (when the refresh job is skipped). A failed refresh leaves the live site as it was.
+    if: ${{ !cancelled() && (needs.refresh.result == 'success' || needs.refresh.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run the tests
+        run: sh tests/run_tests.sh
+      - name: Build the site
+        run: python3 tools/build_preview.py --out site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
