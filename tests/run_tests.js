@@ -455,6 +455,13 @@ test("page: no game features left in the interface", () => {
   for (const w of ["L.streak(", "L.points(", "levelBadge", "Mastered", "level up", "Nice work", "skill tree"]) ok(!app.toLowerCase().includes(w.toLowerCase()), `app.js still mentions ${w}`);
   ok(!/@keyframes/.test(html), "no animations");
 });
+test("page: links a tab icon that exists", () => {
+  for (const f of ["icons/favicon.svg", "icons/favicon-32.png", "icons/apple-touch-icon.png"]) {
+    ok(html.includes(`href="${f}"`), `index.html does not link ${f}`);
+    let found = true; try { read(f); } catch (e) { found = false; }
+    ok(found, `${f} is missing`);
+  }
+});
 test("page: has a short title", () => { const m = /<title>([^<]+)<\/title>/.exec(html); ok(m && m[1].split(" ").length <= 4, m && m[1]); });
 test("page: app.js never uses innerHTML", () => ok(!/innerHTML/.test(app)));
 

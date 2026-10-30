@@ -22,7 +22,13 @@ out = ROOT / ap.parse_args().out
 if out.exists():
     shutil.rmtree(out)
 out.mkdir()
-for folder in ("js", "data"):
+for folder in ("js", "data", "icons"):
     shutil.copytree(ROOT / folder, out / folder)
-(out / "index.html").write_text(SKELETON + (ROOT / "index.html").read_text(encoding="utf-8") + "</body></html>", encoding="utf-8")
+page = (ROOT / "index.html").read_text(encoding="utf-8")
+# Browsers look for tab icons in the <head>, so move the icon links there.
+icons = [l for l in page.splitlines() if l.startswith("<link rel=\"icon\"") or l.startswith("<link rel=\"apple-touch-icon\"")]
+for l in icons:
+    page = page.replace(l + "\n", "")
+head = SKELETON.replace("</head>", "".join(icons) + "</head>")
+(out / "index.html").write_text(head + page + "</body></html>", encoding="utf-8")
 print(f"Site written to {out}")

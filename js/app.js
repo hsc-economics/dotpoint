@@ -101,6 +101,52 @@
     setTimeout(done, 350);
   }
 
+  // A short Web Animations API movement (no CSS keyframes). Does nothing when motion is reduced.
+  function motion(el, frames, opts) {
+    if (!el || reducedMotion() || typeof el.animate !== "function") return null;
+    return el.animate(frames, opts);
+  }
+
+  const DOT_COLOURS = ["var(--hl)", "var(--ink)", "var(--good)", "var(--hl)"];
+
+  // Little dots that burst out from a point on the screen, then fade.
+  function dotBurst(x, y, count) {
+    if (reducedMotion()) return;
+    const layer = h("div", { class: "fx-layer", "aria-hidden": "true" });
+    document.body.append(layer);
+    for (let i = 0; i < (count || 10); i++) {
+      const size = 4 + Math.random() * 5;
+      const dot = h("span", { class: "fx-dot", style: `left:${x}px;top:${y}px;width:${size}px;height:${size}px;background:${DOT_COLOURS[i % DOT_COLOURS.length]}` });
+      layer.append(dot);
+      const angle = (Math.PI * 2 * i) / (count || 10) + Math.random() * 0.5;
+      const dist = 22 + Math.random() * 26;
+      motion(dot, [
+        { transform: "translate(-50%, -50%) scale(1)", opacity: 1 },
+        { transform: `translate(calc(-50% + ${Math.cos(angle) * dist}px), calc(-50% + ${Math.sin(angle) * dist}px)) scale(0.2)`, opacity: 0 },
+      ], { duration: 520 + Math.random() * 200, easing: "cubic-bezier(.2,.7,.3,1)", fill: "forwards" });
+    }
+    setTimeout(() => layer.remove(), 900);
+  }
+
+  // A shower of dots falling across the whole screen: the celebration.
+  function dotShower(count) {
+    if (reducedMotion()) return;
+    const layer = h("div", { class: "fx-layer", "aria-hidden": "true" });
+    document.body.append(layer);
+    const n = count || 36;
+    for (let i = 0; i < n; i++) {
+      const size = 6 + Math.random() * 14;
+      const dot = h("span", { class: "fx-dot", style: `left:${Math.random() * 100}vw;top:-24px;width:${size}px;height:${size}px;background:${DOT_COLOURS[i % DOT_COLOURS.length]}` });
+      layer.append(dot);
+      const drift = (Math.random() - 0.5) * 120;
+      motion(dot, [
+        { transform: "translate(0, 0)", opacity: 1 },
+        { transform: `translate(${drift}px, calc(100vh + 48px))`, opacity: 0.9 },
+      ], { duration: 1400 + Math.random() * 1200, delay: Math.random() * 500, easing: "cubic-bezier(.45,.05,.75,.6)", fill: "forwards" });
+    }
+    setTimeout(() => layer.remove(), 3400);
+  }
+
   let toastTimer = null;
   function toast(msg) {
     const t = $("toast");
@@ -428,8 +474,10 @@
         ["none", "shaky", "confident"].map((k) => h("button", {
           type: "button", class: "s-" + k, "aria-pressed": String(st === k),
           onclick: () => {
+            const was = status(dp.id);
             commit((p) => { p.dotStatus[dp.id] = k; });
             refreshRowSummary(dp.id);
+            if (k !== was) celebrateDot(dp.id, k);
           },
         }, mark(k), STATUS_LABEL[k]))),
       h("button", { type: "button", class: "btn small", disabled: cards.length ? null : true, onclick: () => startDrill("dp:" + dp.id) },
@@ -612,6 +660,22 @@
     const box = li.querySelector(".reveal[id]"); // a panel that is still closing has lost its id
     if (open && !box) li.append(revealBox(h("div", { class: "dp-detail" }, ...dpBody(dpIndex[dpId])), { id: "dpd-" + dpId }, true));
     if (!open && box) { box.removeAttribute("id"); collapseBox(box); }
+  }
+
+  // The row's dot pops when its confidence changes, bursts when it becomes confident, and finishing
+  // a whole focus area earns a shower of dots.
+  function celebrateDot(dpId, st) {
+    const m = document.querySelector(`#dp-${dpId} .dp-toggle .mark`);
+    if (!m || st === "none") return;
+    motion(m, [{ transform: "scale(1)" }, { transform: "scale(1.7)" }, { transform: "scale(0.9)" }, { transform: "scale(1)" }],
+      { duration: 460, easing: "cubic-bezier(.3,1.6,.5,1)" });
+    if (st !== "confident") return;
+    const r = m.getBoundingClientRect();
+    dotBurst(r.left + r.width / 2, r.top + r.height / 2, 12);
+    const fa = dpIndex[dpId].focus;
+    if (fa.dotpoints.every((x) => status(x.id) === "confident")) {
+      setTimeout(() => { dotShower(40); toast(`Every dot point in ${fa.name} marked confident.`); }, 350);
+    }
   }
 
   // After a confidence change, update the marker, the counts and the pressed button in place.
@@ -994,18 +1058,33 @@
   }
 
   function mountChart(box, ind, pts) {
-    let lastW = 0;
+    let lastW = 0, drawn = false;
     const draw = () => {
       const w = Math.round(box.clientWidth || 600);
       if (Math.abs(w - lastW) < 8 && box.firstChild) return;
       lastW = w;
       box.replaceChildren(lineChart(ind, pts, w));
+      if (!drawn) { drawn = true; drawIn(box); }
     };
     draw();
     if (typeof ResizeObserver === "function") {
       const ro = new ResizeObserver(() => { if (!box.isConnected) { ro.disconnect(); return; } draw(); });
       ro.observe(box);
     }
+  }
+
+  // The line traces itself from left to right, then the latest point pops in.
+  function drawIn(box) {
+    const line = box.querySelector(".series"), area = box.querySelector(".series-area"), end = box.querySelector(".end-dot");
+    if (!line || reducedMotion() || typeof line.getTotalLength !== "function") return;
+    const len = Math.ceil(line.getTotalLength());
+    if (!len) return;
+    line.style.strokeDasharray = `${len}`;
+    const anim = motion(line, [{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 900, easing: "cubic-bezier(.3,.6,.2,1)" });
+    if (anim) anim.onfinish = () => { line.style.strokeDasharray = ""; };
+    motion(area, [{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: 500, fill: "backwards" });
+    motion(end, [{ transform: "scale(0)" }, { transform: "scale(1.5)" }, { transform: "scale(1)" }],
+      { duration: 380, delay: 850, easing: "cubic-bezier(.3,1.6,.5,1)", fill: "backwards" });
   }
 
   function lineChart(ind, pts, width) {
@@ -1206,35 +1285,72 @@
 
   const KIND_LABEL = { evidence: "Example", term: "Key term", stat: "Statistic" };
 
+  // A two-sided card: the question on the front, the answer on the back. Tap it, or press Space, to flip.
   function renderCard(root, d) {
     const c = d.queue[d.i];
     const extra = d.queue.length - (d.base || d.queue.length);
+    const dps = c.dotpoints.filter((id) => dpIndex[id]);
     root.append(viewHead("drills", `Card ${d.i + 1} of ${d.queue.length}`,
       `Flashcards: ${deckTitle(d.key)}.${extra ? ` ${extra} card${extra === 1 ? "" : "s"} you forgot ${extra === 1 ? "comes" : "come"} back at the end.` : ""}`));
     const card = h("div", { class: "flash" });
     card.append(h("div", { class: "progress", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": String(d.queue.length), "aria-valuenow": String(d.i), "aria-label": "Progress" },
       h("span", { style: `width:${(d.i / d.queue.length) * 100}%` })));
-    card.append(h("div", { class: "flash-top" }, h("span", { class: "chip" }, KIND_LABEL[c.kind] || "Card"),
+    card.append(h("div", { class: "flash-top" }, h("span", { class: "small muted" }, KIND_LABEL[c.kind] || "Card"),
       h("button", { type: "button", class: "btn ghost small", onclick: () => { ui.drill = null; renderDrills(); } }, "Stop")));
-    card.append(h("p", { class: "flash-q", id: "flash-q" }, c.q));
 
-    if (!d.shown) {
-      card.append(h("button", { type: "button", class: "btn primary", id: "show-answer", onclick: () => { d.shown = true; renderDrills(); const g = $("g-good"); if (g) g.focus(); } },
-        "Show answer ", h("kbd", null, "Space")));
-    } else {
-      const dps = c.dotpoints.filter((id) => dpIndex[id]);
-      card.append(revealBox(h("div", { class: "flash-a", "aria-live": "polite" },
-        h("p", null, c.a),
-        c.source && h("p", { class: "small muted" }, "Source: ", c.source),
-        c.kind === "evidence" && h("button", { type: "button", class: "link-btn small", onclick: () => { ui.drill = null; openEvidence(c.ref); } }, "Open the example"),
-        dps.length > 0 && h("p", { class: "small muted" }, "Dot point: ", dpIndex[dps[0]].text)), {}, true));
-      card.append(h("p", { class: "small muted" }, "How well did you know it? Keys 1, 2 and 3 work too."));
-      card.append(h("div", { class: "grades" },
+    const front = h("div", { class: "flip-face flip-front", "aria-hidden": String(!!d.shown), inert: d.shown ? true : null },
+      h("span", { class: "chip" }, "Question"),
+      h("p", { class: "flash-q", id: "flash-q" }, c.q),
+      h("p", { class: "flip-hint small muted" }, "Tap the card or press Space to flip"));
+    const back = h("div", { class: "flip-face flip-back", "aria-hidden": String(!d.shown), inert: d.shown ? null : true },
+      h("span", { class: "chip" }, "Answer"),
+      h("p", { class: "flash-a-main" }, c.a),
+      c.source && h("p", { class: "small muted" }, "Source: ", c.source),
+      dps.length > 0 && h("p", { class: "small muted" }, "Dot point: ", dpIndex[dps[0]].text),
+      c.kind === "evidence" && h("button", { type: "button", class: "link-btn small", onclick: () => { ui.drill = null; openEvidence(c.ref); } }, "Open the example"));
+    card.append(h("div", { class: "flip" + (d.shown ? " is-flipped" : ""), id: "flip",
+      onclick: (ev) => { if (!ev.target.closest("button, a")) flipCard(); } },
+      h("div", { class: "flip-inner" }, front, back)));
+    card.append(h("p", { class: "sr-only", id: "flip-live", "aria-live": "polite" }));
+    card.append(h("div", { class: "flash-controls", id: "flash-controls" }, flashControls(d, c)));
+    root.append(card);
+    // Each new card slides in from the right.
+    motion(card.querySelector(".flip"), [{ opacity: 0, transform: "translateX(28px)" }, { opacity: 1, transform: "none" }],
+      { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)" });
+  }
+
+  function flashControls(d, c) {
+    if (!d.revealed) {
+      return h("button", { type: "button", class: "btn primary", id: "show-answer", onclick: () => flipCard() },
+        "Flip to see the answer ", h("kbd", null, "Space"));
+    }
+    return [
+      h("p", { class: "small muted" }, "How well did you know it? Keys 1, 2 and 3 work too. Flip the card again to reread the question."),
+      h("div", { class: "grades" },
         h("button", { type: "button", class: "btn g-again", id: "g-again", onclick: () => gradeCard("again") }, "Forgot", h("small", null, "back later today")),
         h("button", { type: "button", class: "btn g-hard", id: "g-hard", onclick: () => gradeCard("hard") }, "Unsure", h("small", null, nextGap(c, "hard"))),
-        h("button", { type: "button", class: "btn g-good", id: "g-good", onclick: () => gradeCard("good") }, "Knew it", h("small", null, nextGap(c, "good")))));
+        h("button", { type: "button", class: "btn g-good", id: "g-good", onclick: () => gradeCard("good") }, "Knew it", h("small", null, nextGap(c, "good")))),
+    ];
+  }
+
+  // Turn the card over in place. The first flip reveals the answer and the grading buttons.
+  function flipCard() {
+    const d = ui.drill;
+    const flip = $("flip");
+    if (!d || !flip) return;
+    d.shown = !d.shown;
+    const firstReveal = d.shown && !d.revealed;
+    if (d.shown) d.revealed = true;
+    flip.classList.toggle("is-flipped", d.shown);
+    const [front, back] = flip.querySelectorAll(".flip-face");
+    front.setAttribute("aria-hidden", String(d.shown)); front.inert = d.shown;
+    back.setAttribute("aria-hidden", String(!d.shown)); back.inert = !d.shown;
+    const c = d.queue[d.i];
+    $("flip-live").textContent = d.shown ? `Answer: ${c.a}` : `Question: ${c.q}`;
+    if (firstReveal) {
+      $("flash-controls").replaceChildren(...[].concat(flashControls(d, c)));
+      const g = $("g-good"); if (g) g.focus();
     }
-    root.append(card);
   }
 
   // When a card comes back after this grade, worked out by the same rule the scheduler uses.
@@ -1245,13 +1361,18 @@
 
   function gradeCard(result) {
     const d = ui.drill;
-    if (!d || !d.shown) return;
+    if (!d || !d.revealed) return;
     const c = d.queue[d.i];
+    if (result === "good") {
+      const b = $("g-good");
+      if (b) { const r = b.getBoundingClientRect(); dotBurst(r.left + r.width / 2, r.top + r.height / 2, 10); }
+    }
     commit((p) => { p.cards[c.id] = L.grade(p.cards[c.id], result, TODAY); });
     d.results[result]++;
     if (result === "again" && !d.requeued[c.id]) { d.requeued[c.id] = true; d.queue.push(c); }
     d.i++;
     d.shown = false;
+    d.revealed = false;
     renderDrills();
     const btn = $("show-answer");
     if (btn) btn.focus(); else { const hd = $("h-drills"); if (hd) hd.focus(); }
@@ -1259,8 +1380,11 @@
 
   function renderSummary(root, d) {
     const r = d.results;
-    root.append(viewHead("drills", "Session complete",
-      "Cards you forgot are scheduled first next time. Short, regular sessions work better than cramming."));
+    const perfect = r.good > 0 && !r.hard && !r.again;
+    root.append(viewHead("drills", perfect ? "Perfect session" : "Session complete", perfect
+      ? "You knew every card. They'll come back later, spaced out, to make sure they stick."
+      : "Cards you forgot are scheduled first next time. Short, regular sessions work better than cramming."));
+    if (perfect) setTimeout(() => dotShower(36), 150);
     root.append(h("div", { class: "panel section" },
       h("div", { class: "summary-nums" },
         h("div", null, h("b", null, String(r.good)), h("span", { class: "small muted" }, "knew it")),
@@ -1277,13 +1401,11 @@
     if ($("report-dialog").open) return;
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     const onControl = e.target && /^(BUTTON|A|SUMMARY)$/.test(e.target.tagName);
-    if (!ui.drill.shown && (e.key === " " || e.key === "Enter")) {
+    if (e.key === " " || (e.key === "Enter" && !ui.drill.revealed)) {
       if (onControl) return; // let the focused button do its own job
       e.preventDefault();
-      ui.drill.shown = true;
-      renderDrills();
-      const g = $("g-good"); if (g) g.focus();
-    } else if (ui.drill.shown && ["1", "2", "3"].includes(e.key)) {
+      flipCard();
+    } else if (ui.drill.revealed && ["1", "2", "3"].includes(e.key)) {
       e.preventDefault();
       gradeCard({ 1: "again", 2: "hard", 3: "good" }[e.key]);
     }
@@ -1650,6 +1772,20 @@
       el.addEventListener("click", (e) => { e.preventDefault(); go(el.dataset.nav); });
     }
     $("report-general").addEventListener("click", () => openReport("site", ""));
+    let dotClicks = [];
+    document.querySelector(".brand").addEventListener("click", () => {
+      motion(document.querySelector(".brand-dot"), [
+        { transform: "translateY(0) scale(1, 1)" }, { transform: "translateY(-9px) scale(0.9, 1.12)" },
+        { transform: "translateY(0) scale(1.25, 0.78)" }, { transform: "translateY(-3px) scale(0.96, 1.04)" }, { transform: "translateY(0) scale(1, 1)" },
+      ], { duration: 520, easing: "ease-out" });
+      const now = Date.now();
+      dotClicks = dotClicks.filter((t) => now - t < 2500).concat(now);
+      if (dotClicks.length >= 5) {
+        dotClicks = [];
+        dotShower(48);
+        toast(reducedMotion() ? "You found the secret dot. Back to studying!" : "You found the secret dot shower. Back to studying!");
+      }
+    });
     if (SUGGEST_URL) { $("suggest-footer").href = SUGGEST_URL; $("suggest-footer").hidden = false; }
     $("report-cancel").addEventListener("click", closeReport);
     $("report-form").addEventListener("submit", (e) => { e.preventDefault(); sendReport(); });
