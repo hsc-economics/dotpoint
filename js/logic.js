@@ -440,6 +440,34 @@
       .sort((a, b) => (a.date < b.date ? 1 : -1));
   }
 
+  // ---------- news ----------
+
+  // "12 minutes ago", "5 hours ago", "yesterday", "3 days ago".
+  function timeAgo(iso, nowMs) {
+    const ms = nowMs - Date.parse(iso);
+    const min = Math.floor(ms / 60000);
+    if (!(min >= 1)) return "just now"; // also covers a clock that runs a little fast
+    if (min < 60) return `${min} minute${min === 1 ? "" : "s"} ago`;
+    const hrs = Math.floor(min / 60);
+    if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+    const days = Math.floor(hrs / 24);
+    return days === 1 ? "yesterday" : `${days} days ago`;
+  }
+
+  // Stories from the last few days, kept in the order tools/update_news.py ranked them.
+  function recentNews(items, nowMs, maxDays) {
+    const limit = (maxDays || 4) * DAY;
+    return (items || []).filter((n) => {
+      const t = Date.parse(n.published);
+      return t <= nowMs + 3600000 && nowMs - t <= limit;
+    });
+  }
+
+  // "A", "A and B", "A, B and C".
+  function andList(items) {
+    return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+  }
+
   // ---------- study sequence and site-wide search ----------
 
   // Which dot points this one builds on, and which build on it (from the branch structure).
@@ -643,7 +671,7 @@
     slug, dotpointIndex, dotpointStatus, tokens, searchEvidence,
     emptyProgress, normaliseProgress, mergeProgress, suggestions, cleanReport,
     MASTERY, skillLevel, skillTree, branchRows, nextSkill, streak, points, relatedIndicators, relatedExamples,
-    sequence, searchAll,
+    sequence, searchAll, timeAgo, recentNews, andList,
   };
   root.DP_LOGIC = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

@@ -576,6 +576,8 @@
         h("button", { type: "button", class: "btn ghost small", onclick: () => go("stats") }, "All 20 figures and charts")),
       h("div", { class: "tiles home-tiles" }, homeInds.map((ind) => statTile(ind, () => { ui.statSel = ind.id; go("stats"); })))));
 
+    root.append(newsSection());
+
     const grid = h("div", { class: "grid-2" });
     const left = h("div", { class: "section" });
     const right = h("div", { class: "section" });
@@ -915,6 +917,56 @@
     if (!SUGGEST_URL) return null;
     return h("p", { class: "suggest small muted" }, lead, " ",
       h("a", { href: SUGGEST_URL, target: "_blank", rel: "noopener" }, "Suggest an example or statistic ↗"));
+  }
+
+  // Top economics and politics stories from trusted outlets, ranked by tools/update_news.py (how widely
+  // a story is covered, how closely it links to the syllabus, how recent it is). Headlines always link
+  // to the original article. Each story names the dot points it links to.
+  function newsSection() {
+    const N = globalThis.DP_NEWS;
+    if (!N) return null;
+    const nowMs = Date.now();
+    const cols = [["economy", "Economy and markets"], ["world", "Politics and world"]]
+      .map(([key, title]) => ({ key, title, items: L.recentNews(N[key], nowMs) }));
+    const total = cols.reduce((n, c) => n + c.items.length, 0);
+    const section = h("section", { class: "section", id: "news", "aria-labelledby": "h-news" });
+    const draw = () => {
+      const shown = ui.newsAll ? 12 : 5;
+      const more = cols.some((c) => c.items.length > 5);
+      section.replaceChildren(
+        h("div", { class: "section-head" },
+          h("div", null,
+            h("h2", { id: "h-news" }, "In the news"),
+            h("p", { class: "small muted" }, total
+              ? `Top stories from ${L.andList(N.sources)}, ranked by how widely they're covered and how closely they link to the syllabus. Updated ${L.timeAgo(N.generatedAt, nowMs)}.`
+              : "No stories from the last few days. The list refreshes several times a day.")),
+          more ? h("button", {
+            type: "button", class: "btn ghost small", "aria-expanded": ui.newsAll ? "true" : "false", "aria-controls": "news-cols",
+            onclick: () => { ui.newsAll = !ui.newsAll; draw(); },
+          }, ui.newsAll ? "Show fewer stories" : "Show more stories") : null),
+        total ? h("div", { class: "grid-2", id: "news-cols" }, cols.map((c) => h("div", { class: "news-col" },
+          h("h3", null, c.title),
+          c.items.length
+            ? h("ul", { class: "news-list" }, c.items.slice(0, shown).map((n) => newsItem(n, nowMs)))
+            : h("p", { class: "small muted" }, "No recent stories.")))) : null);
+    };
+    draw();
+    return section;
+  }
+
+  function newsItem(n, nowMs) {
+    const dps = (n.dotpoints || []).map((id) => dpIndex[id]).filter(Boolean);
+    const also = n.also || [];
+    return h("li", { class: "news-item" },
+      h("a", { class: "news-link", href: n.url, target: "_blank", rel: "noopener" }, n.title, h("span", { class: "sr-only" }, " (opens in a new tab)")),
+      h("div", { class: "news-foot" },
+        meta("news-meta", n.outlet, L.timeAgo(n.published, nowMs),
+          also.length ? h("span", null, "Also in ", also.flatMap((a, i) => [
+            i ? (i === also.length - 1 ? " and " : ", ") : "",
+            h("a", { href: a.url, target: "_blank", rel: "noopener" }, a.outlet)])) : null),
+        dps.map((dp) => h("button", {
+          type: "button", class: "news-dp", onclick: () => openDotpoint(dp.id), "aria-label": `Open dot point: ${dp.short}`,
+        }, h("span", null, mark(status(dp.id)), dp.short)))));
   }
 
   // The figures the RBA updates every business day, with the change on the previous business day.

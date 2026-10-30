@@ -2,7 +2,7 @@
 # Runs the test suite with whichever JavaScript engine is available.
 cd "$(dirname "$0")/.." || exit 1
 JSC=/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc
-for f in js/logic.js js/app.js data/syllabus.js data/evidence.js data/stats.js data/questions.js data/config.js; do
+for f in js/logic.js js/app.js data/syllabus.js data/evidence.js data/stats.js data/questions.js data/news.js data/config.js; do
   if [ -x "$JSC" ]; then "$JSC" -e "checkSyntax('$f')" || { echo "Syntax error in $f"; exit 1; }; fi
 done
 if [ -x "$JSC" ]; then

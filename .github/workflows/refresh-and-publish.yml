@@ -1,6 +1,7 @@
 # Keeps Dotpoint up to date without Claude.
-# Every weekday evening (Sydney time) it downloads the latest RBA and ABS figures, runs the tests,
-# saves any new figures to the repository, and publishes the site to GitHub Pages.
+# Every weekday evening (Sydney time) it downloads the latest RBA and ABS figures, and several times a
+# day it collects the top headlines for "In the news". It runs the tests, saves anything new to the
+# repository, and publishes the site to GitHub Pages.
 # It also publishes whenever you push a change to the main branch, and you can run it by hand
 # from the Actions tab ("Run workflow").
 name: Refresh statistics and publish
@@ -8,6 +9,7 @@ name: Refresh statistics and publish
 on:
   schedule:
     - cron: "30 8 * * 1-5"   # 08:30 UTC = 7:30pm AEDT / 6:30pm AEST, after the RBA's daily tables update
+    - cron: "0 20,23,2,5,11 * * *"   # headlines through the day: 7am, 10am, 1pm, 4pm and 10pm AEDT
   workflow_dispatch:
   push:
     branches: [main]
@@ -33,20 +35,29 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      # Either download can fail on its own (a source is down) without stopping the other. Both scripts
+      # leave the old file in place when they fail, and the tests below still have to pass.
       - name: Download the latest RBA and ABS figures
+        continue-on-error: true
         run: python3 tools/update_stats.py
+      - name: Download the top headlines
+        continue-on-error: true
+        run: python3 tools/update_news.py
       - name: Run the tests
         run: sh tests/run_tests.sh
-      - name: Save new figures
+      - name: Save new figures and headlines
         run: |
-          if git diff --quiet -- data/stats.js; then
-            echo "No new figures today."
+          if git diff --quiet -- data/stats.js data/news.js; then
+            echo "Nothing new."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/stats.js
-          git commit -m "Refresh statistics $(date -u +%Y-%m-%d)"
+          git add data/stats.js data/news.js
+          if git diff --cached --quiet -- data/stats.js; then what="news"
+          elif git diff --cached --quiet -- data/news.js; then what="statistics"
+          else what="statistics and news"; fi
+          git commit -m "Refresh $what $(date -u +%Y-%m-%d)"
           git push
 
   publish:

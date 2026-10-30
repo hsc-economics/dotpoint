@@ -4,9 +4,10 @@ load("data/syllabus.js");
 load("data/evidence.js");
 load("data/stats.js");
 load("data/questions.js");
+load("data/news.js");
 load("js/logic.js");
 
-const L = DP_LOGIC, SY = DP_SYLLABUS, EV = DP_EVIDENCE, ST = DP_STATS;
+const L = DP_LOGIC, SY = DP_SYLLABUS, EV = DP_EVIDENCE, ST = DP_STATS, NEWS = DP_NEWS;
 let passed = 0, failed = 0;
 function test(name, fn) {
   try { fn(); passed++; }
@@ -444,7 +445,7 @@ test("page: every element id used by app.js exists in index.html or is created b
   for (const id of new Set(used)) ok(html.includes(`id="${id}"`) || created.has(id), `missing #${id}`);
 });
 test("page: scripts load in dependency order", () => {
-  const order = ["data/syllabus.js", "data/evidence.js", "data/stats.js", "data/questions.js", "data/config.js", "js/logic.js", "js/app.js"].map((f) => html.indexOf(`src="${f}"`));
+  const order = ["data/syllabus.js", "data/evidence.js", "data/stats.js", "data/questions.js", "data/news.js", "data/config.js", "js/logic.js", "js/app.js"].map((f) => html.indexOf(`src="${f}"`));
   ok(order.every((x, i) => x > 0 && (i === 0 || x > order[i - 1])), JSON.stringify(order));
 });
 test("page: no document skeleton tags (the publisher adds them)", () => {
@@ -462,6 +463,62 @@ test("page: links a tab icon that exists", () => {
     ok(found, `${f} is missing`);
   }
 });
+// ---------- news ----------
+test("news: every story has a headline, outlet, time and https link", () => {
+  ok(L.parseISO(NEWS.generatedAt.slice(0, 10)), "generatedAt");
+  ok(NEWS.sources.length >= 3, "sources");
+  for (const k of ["economy", "world"]) {
+    ok(Array.isArray(NEWS[k]) && NEWS[k].length <= 12, k);
+    for (const n of NEWS[k]) {
+      ok(n.title && n.title.length < 300, `${k}: title`);
+      ok(/^https:\/\//.test(n.url), `${n.title}: url`);
+      ok(NEWS.sources.includes(n.outlet), `${n.title}: outlet ${n.outlet}`);
+      ok(!isNaN(Date.parse(n.published)), `${n.title}: published`);
+      for (const a of n.also) ok(/^https:\/\//.test(a.url) && NEWS.sources.includes(a.outlet), `${n.title}: also`);
+    }
+  }
+});
+test("news: no story appears twice", () => {
+  const urls = ["economy", "world"].flatMap((k) => NEWS[k].flatMap((n) => [n.url, ...n.also.map((a) => a.url)]));
+  eq(new Set(urls).size, urls.length);
+});
+test("news: every dot point link exists, two at most per story", () => {
+  for (const k of ["economy", "world"]) for (const n of NEWS[k]) {
+    ok(n.dotpoints.length <= 2, n.title);
+    for (const id of n.dotpoints) ok(dpIndex[id], `${n.title} -> ${id}`);
+  }
+});
+test("news: every dot point the news script can name exists", () => {
+  const py = read("tools/update_news.py");
+  const start = py.indexOf("TOPICS = {");
+  const block = py.slice(start, py.indexOf("\n}\n", start));
+  const ids = [...block.matchAll(/^    "([a-z0-9-]+)":/gm)].map((m) => m[1]);
+  ok(ids.length > 10, "found the topics");
+  for (const id of ids) ok(dpIndex[id], id);
+});
+test("news: time ago reads naturally", () => {
+  const now = Date.parse("2026-10-30T12:00:00Z");
+  eq(L.timeAgo("2026-10-30T11:59:40Z", now), "just now");
+  eq(L.timeAgo("2026-10-30T12:05:00Z", now), "just now");
+  eq(L.timeAgo("2026-10-30T11:59:00Z", now), "1 minute ago");
+  eq(L.timeAgo("2026-10-30T11:15:00Z", now), "45 minutes ago");
+  eq(L.timeAgo("2026-10-30T11:00:00Z", now), "1 hour ago");
+  eq(L.timeAgo("2026-10-30T01:00:00Z", now), "11 hours ago");
+  eq(L.timeAgo("2026-10-29T10:00:00Z", now), "yesterday");
+  eq(L.timeAgo("2026-10-27T10:00:00Z", now), "3 days ago");
+});
+test("news: old stories drop off", () => {
+  const now = Date.parse("2026-10-30T12:00:00Z");
+  const items = [{ published: "2026-10-30T09:00:00Z" }, { published: "2026-10-25T09:00:00Z" }, { published: "2026-10-30T18:00:00Z" }];
+  eq(L.recentNews(items, now).length, 1);
+  eq(L.recentNews(undefined, now), []);
+});
+test("news: lists read naturally", () => {
+  eq(L.andList(["ABC News"]), "ABC News");
+  eq(L.andList(["A", "B"]), "A and B");
+  eq(L.andList(["A", "B", "C"]), "A, B and C");
+});
+
 test("page: has a short title", () => { const m = /<title>([^<]+)<\/title>/.exec(html); ok(m && m[1].split(" ").length <= 4, m && m[1]); });
 test("page: app.js never uses innerHTML", () => ok(!/innerHTML/.test(app)));
 

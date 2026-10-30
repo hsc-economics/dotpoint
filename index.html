@@ -377,6 +377,25 @@ h1, h2, .ev, .fa, .dp { scroll-margin-top: 84px; }
   .mini-ev .mono { white-space: normal; text-align: left; }
 }
 
+/* ---------- in the news ---------- */
+.news-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.news-item { display: grid; padding: 8px 0 4px; border-bottom: 1px solid var(--rule); }
+.news-link {
+  display: flex; align-items: center; min-height: 44px; color: var(--ink); text-decoration: none;
+  font-weight: 600; line-height: 1.35; text-wrap: pretty;
+}
+.news-link:hover { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.news-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 0 14px; min-height: 44px; font-size: var(--fs-sm); color: var(--muted); }
+.news-meta { display: contents; }
+.news-meta a { color: inherit; }
+/* the dot points a story links to: a light pill inside a full 44px tap area */
+.news-dp { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; cursor: pointer; color: var(--ink); font: inherit; font-weight: 600; }
+.news-dp > span { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 6px; border-radius: 999px; background: var(--soft); transition: background-color 0.15s ease; }
+.news-dp:hover > span { background: var(--hl-soft); }
+.news-dp:focus-visible { outline: none; }
+.news-dp:focus-visible > span { outline: 3px solid var(--ink); outline-offset: 2px; }
+.news-col h3 { margin: 0 0 8px; }
+
 /* ---------- stats detail ---------- */
 .detail-head { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; align-items: end; }
 .detail-head > div { display: grid; gap: 4px; }
@@ -748,6 +767,7 @@ textarea.field { min-height: 100px; resize: vertical; }
 <script src="data/evidence.js"></script>
 <script src="data/stats.js"></script>
 <script src="data/questions.js"></script>
+<script src="data/news.js"></script>
 <script src="data/config.js"></script>
 <script src="js/logic.js"></script>
 <script src="js/app.js"></script>
