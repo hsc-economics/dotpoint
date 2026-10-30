@@ -148,7 +148,8 @@
   }
 
   // The opening moment, once per visit: a big dot pops up in the middle of the screen, spins like a
-  // coin, then shrinks and flies into the logo in the corner. A click or key press skips it.
+  // coin, then shrinks and flies onto the end of the logo's chart line, which then draws itself in
+  // up to the dot. A click or key press skips it.
   function introDot() {
     try {
       if (sessionStorage.getItem("dotpoint.intro")) return;
@@ -162,7 +163,9 @@
     const dot = h("div", { class: "intro-dot", style: `width:${size}px;height:${size}px;margin:${-size / 2}px 0 0 ${-size / 2}px;border-width:${Math.round(size * 0.15)}px` });
     const veil = h("div", { class: "intro-veil", "aria-hidden": "true" }, dot);
     document.body.append(veil);
+    const line = document.querySelector(".brand-line");
     target.style.visibility = "hidden";
+    if (line) line.style.visibility = "hidden";
 
     let finished = false;
     const finish = () => {
@@ -172,6 +175,16 @@
       target.style.visibility = "";
       motion(target, [{ transform: "scale(1.6)" }, { transform: "scale(0.85)" }, { transform: "scale(1)" }],
         { duration: 360, easing: "cubic-bezier(.3,1.6,.5,1)" });
+      if (line) {
+        line.style.visibility = "";
+        const len = typeof line.getTotalLength === "function" ? Math.ceil(line.getTotalLength()) : 0;
+        if (len) {
+          line.style.strokeDasharray = `${len}`;
+          const draw = motion(line, [{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 520, delay: 120, easing: "cubic-bezier(.3,.6,.2,1)", fill: "backwards" });
+          if (draw) draw.onfinish = () => { line.style.strokeDasharray = ""; };
+          else line.style.strokeDasharray = "";
+        }
+      }
       window.removeEventListener("keydown", finish);
     };
     const dx = t.left + t.width / 2 - window.innerWidth / 2;

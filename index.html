@@ -129,7 +129,10 @@ a:hover { text-decoration-thickness: 2px; }
   font-family: var(--font-display); font-weight: 800; font-size: var(--fs-lg); letter-spacing: -0.035em;
   color: var(--ink); text-decoration: none;
 }
-.brand-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--hl); border: 2.5px solid var(--ink); transition: transform 0.2s ease; }
+.brand-mark { width: 32px; height: 32px; flex: none; overflow: visible; }
+/* the logo: a rising chart line that ends in the yellow dot (same drawing as icons/favicon.svg) */
+.brand-line { fill: none; stroke: var(--ink); stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; }
+.brand-dot { fill: var(--hl); stroke: var(--ink); stroke-width: 5; transform-box: fill-box; transform-origin: center; transition: transform 0.2s ease; }
 .brand:hover .brand-dot { transform: scale(1.15); }
 .subject { font-size: var(--fs-sm); color: var(--muted); padding-left: 16px; border-left: 1px solid var(--rule); line-height: 1.2; }
 .tabs { display: flex; gap: 4px; margin-left: auto; }
@@ -146,6 +149,11 @@ a:hover { text-decoration-thickness: 2px; }
   border-radius: 999px; min-width: 1.5em; padding: 0 5px; text-align: center;
 }
 
+/* mid-size screens: keep the header on one line */
+@media (max-width: 1000px) {
+  .subject { display: none; }
+  .tab { padding-inline: 9px; }
+}
 @media (max-width: 760px) {
   .topbar { position: static; }
   .topbar .wrap { min-height: 56px; }
@@ -666,7 +674,7 @@ textarea.field { min-height: 100px; resize: vertical; }
 
 <header class="topbar">
   <div class="wrap">
-    <a class="brand" href="#today" data-nav="today" aria-label="Dotpoint home"><span class="brand-dot" aria-hidden="true"></span>Dotpoint</a>
+    <a class="brand" href="#today" data-nav="today" aria-label="Dotpoint home"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><polyline class="brand-line" points="7,51 21,37 31,43 45,21"/><circle class="brand-dot" cx="45" cy="21" r="12"/></svg>Dotpoint</a>
     <span class="subject">HSC Economics</span>
     <nav class="tabs" aria-label="Main">
       <button type="button" class="tab" data-nav="today">
