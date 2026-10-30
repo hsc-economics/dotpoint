@@ -71,13 +71,47 @@
     return h("span", { class: "mark m-" + st, "aria-hidden": "true" });
   }
 
+  // ---------- motion: short transitions, none when the viewer prefers reduced motion ----------
+
+  const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Run fn once the browser has drawn the current state, so a CSS transition has a starting point.
+  // The timer is a fallback for when animation frames are paused (a hidden tab or frame).
+  const nextFrame = (fn) => {
+    let ran = false;
+    const run = () => { if (!ran) { ran = true; fn(); } };
+    requestAnimationFrame(() => requestAnimationFrame(run));
+    setTimeout(run, 80);
+  };
+
+  // A panel that slides open: <div class="reveal"><div class="reveal-inner">content</div></div>
+  function revealBox(content, attrs, animate) {
+    const box = h("div", { ...attrs, class: "reveal" + (animate ? "" : " is-open") }, h("div", { class: "reveal-inner" }, content));
+    if (animate) nextFrame(() => { void box.offsetHeight; box.classList.add("is-open"); });
+    return box;
+  }
+
+  // Slide a revealBox closed, then remove it.
+  function collapseBox(box) {
+    if (!box) return;
+    if (reducedMotion()) { box.remove(); return; }
+    let gone = false;
+    const done = () => { if (!gone) { gone = true; box.remove(); } };
+    box.classList.remove("is-open");
+    box.addEventListener("transitionend", done, { once: true });
+    setTimeout(done, 350);
+  }
+
   let toastTimer = null;
   function toast(msg) {
     const t = $("toast");
     t.textContent = msg;
     t.hidden = false;
+    nextFrame(() => t.classList.add("show"));
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+    toastTimer = setTimeout(() => {
+      t.classList.remove("show");
+      toastTimer = setTimeout(() => { t.hidden = true; }, reducedMotion() ? 0 : 220);
+    }, 3200);
   }
 
   async function copyText(text, fallbackEl) {
@@ -248,8 +282,16 @@
   function go(view, opts) {
     if (view === "skills") view = "syllabus"; // old links
     if (!VIEWS.includes(view)) view = "today";
+    // A finished flashcard session shouldn't greet you next time you open Flashcards.
+    if (view === "drills" && ui.drill && ui.drill.i >= ui.drill.queue.length && ui.view !== "drills") ui.drill = null;
+    const changed = ui.view !== view;
     ui.view = view;
     for (const v of VIEWS) $("view-" + v).hidden = v !== view;
+    const el = $("view-" + view);
+    if (changed && !reducedMotion()) {
+      el.classList.add("view-enter");
+      nextFrame(() => el.classList.remove("view-enter"));
+    }
     for (const b of document.querySelectorAll(".tab")) {
       if (b.dataset.nav === view) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     }
@@ -262,7 +304,7 @@
         else history.replaceState(null, "", "#" + view);
       }
     } catch (e) { /* ignore */ }
-    if (!opts || !opts.keepScroll) window.scrollTo(0, 0);
+    if (!opts || !opts.keepScroll) window.scrollTo({ top: 0, behavior: "instant" });
     if (!opts || opts.focus !== false) {
       const head = $("h-" + view);
       if (head) head.focus({ preventScroll: true });
@@ -336,7 +378,7 @@
 
   function progressText(dpId) {
     const sk = L.skillLevel(dpId, progress, deck);
-    return sk.total ? `${sk.learned}/${sk.total} cards learned` : "No cards yet";
+    return sk.total ? `${sk.learned} of ${sk.total} cards learned` : "No cards yet";
   }
 
   function dpLink(id) {
@@ -350,13 +392,13 @@
   function exampleRow(e) {
     return h("li", null,
       h("button", { type: "button", onclick: () => openEvidence(e.id) },
-        h("span", null, !progress.seenEvidence[e.id] && h("span", { class: "unread", title: "Not opened yet" }), " ", e.title,
+        h("span", null, e.title,
           meta("dp-counts", e.type, L.fmtDate(e.date), L.freshness(e.date, TODAY_ISO).label)),
         h("span", { class: "mono" }, e.keyFigure)));
   }
 
   // Terms, sequence, examples, statistics, confidence and flashcards for one dot point.
-  function dpBody(dp, rerender) {
+  function dpBody(dp) {
     const parts = [];
     const evs = EV.filter((e) => e.dotpoints.includes(dp.id)).sort((a, b) => (a.date < b.date ? 1 : -1));
     const inds = ST.indicators.filter((i) => i.dotpoints.includes(dp.id));
@@ -387,9 +429,7 @@
           type: "button", class: "s-" + k, "aria-pressed": String(st === k),
           onclick: () => {
             commit((p) => { p.dotStatus[dp.id] = k; });
-            rerender();
-            const again = document.querySelector(`#dpd-${cssId(dp.id)} .s-${k}`);
-            if (again) again.focus();
+            refreshRowSummary(dp.id);
           },
         }, mark(k), STATUS_LABEL[k]))),
       h("button", { type: "button", class: "btn small", disabled: cards.length ? null : true, onclick: () => startDrill("dp:" + dp.id) },
@@ -418,16 +458,16 @@
     input.addEventListener("input", () => { ui.homeQuery = input.value; renderHomeResults(results); });
     renderHomeResults(results);
 
-    // The latest figures, given the full width
-    const latestObs = ST.indicators.map((i) => L.latest(i)[0]).sort().pop();
+    // The headline economic indicators, leaving out the ones already in Daily numbers
+    const inDaily = new Set(["cash-rate", "aud-usd", "twi"]);
+    const homeInds = ST.indicators.filter((ind) => ind.group !== "more" && !inDaily.has(ind.id));
     root.append(h("section", { class: "section", "aria-labelledby": "h-numbers" },
       h("div", { class: "section-head" },
         h("div", null,
-          h("h2", { id: "h-numbers" }, "Latest numbers"),
-          h("p", { class: "small muted" }, `Official RBA and ABS figures, latest data ${L.fmtDate(latestObs)}`)),
-        h("button", { type: "button", class: "btn ghost small", onclick: () => go("stats") }, "Charts and history")),
-      h("div", { class: "tiles home-tiles" }, ST.indicators.filter((ind) => ind.group !== "more")
-        .map((ind) => statTile(ind, () => { ui.statSel = ind.id; go("stats"); })))));
+          h("h2", { id: "h-numbers" }, "Economic indicators"),
+          h("p", { class: "small muted" }, "The latest official RBA and ABS figures, and how each has changed in a year.")),
+        h("button", { type: "button", class: "btn ghost small", onclick: () => go("stats") }, "All 20 figures and charts")),
+      h("div", { class: "tiles home-tiles" }, homeInds.map((ind) => statTile(ind, () => { ui.statSel = ind.id; go("stats"); })))));
 
     const grid = h("div", { class: "grid-2" });
     const left = h("div", { class: "section" });
@@ -509,8 +549,7 @@
       groups.append(h("section", { class: "result-group" }, h("h3", null, `Dot points (${r.dotpoints.length})`),
         h("ul", { class: "mini-ev" }, r.dotpoints.slice(0, 6).map((dp) => h("li", null,
           h("button", { type: "button", onclick: () => openDotpoint(dp.id) },
-            h("span", null, dp.text, meta("dp-counts", `Year ${dp.focus.year}`, dp.focus.name)),
-            h("span", { class: "small muted" }, "Open")))))));
+            h("span", null, dp.text, meta("dp-counts", `Year ${dp.focus.year}`, dp.focus.name))))))));
     }
     if (r.examples.length) {
       groups.append(h("section", { class: "result-group" }, h("h3", null, `Examples (${r.examples.length})`),
@@ -533,36 +572,71 @@
           type: "button", "aria-pressed": String(ui.year === y),
           onclick: () => { ui.year = y; ui.openDp = null; renderSyllabus(); },
         }, `Year ${y}`)))));
-    const faGrid = h("div", { class: "fa-grid" });
-    root.append(faGrid);
-    for (const fa of SY.focusAreas.filter((f) => f.year === ui.year)) {
-      faGrid.append(h("section", { class: "fa", id: "fa-" + fa.id, "aria-labelledby": "fah-" + fa.id },
+    // Two columns that grow independently, so opening a dot point never leaves a gap beside it.
+    // On narrower screens the columns dissolve and `order` keeps the focus areas in sequence.
+    const cols = [h("div", { class: "fa-col" }), h("div", { class: "fa-col" })];
+    root.append(h("div", { class: "fa-grid" }, cols));
+    SY.focusAreas.filter((f) => f.year === ui.year).forEach((fa, i) => {
+      cols[i % 2].append(h("section", { class: "fa", id: "fa-" + fa.id, style: `order:${i}`, "aria-labelledby": "fah-" + fa.id },
         h("div", { class: "fa-head" },
           h("h2", { id: "fah-" + fa.id }, fa.name),
           h("a", { href: fa.url, target: "_blank", rel: "noopener", class: "small" }, "Official wording on NESA ↗")),
         h("ul", { class: "dp-list" }, fa.dotpoints.map((dp) => dotpointRow(dp)))));
-    }
+    });
+  }
+
+  function chevron() {
+    return h("span", { class: "chev", "aria-hidden": "true" },
+      s("svg", { viewBox: "0 0 16 16", width: 16, height: 16 },
+        s("path", { d: "M4 6l4 4 4-4", fill: "none", stroke: "currentColor", "stroke-width": 1.8, "stroke-linecap": "round", "stroke-linejoin": "round" })));
+  }
+
+  function rowCounts(dp) {
+    const evCount = EV.filter((e) => e.dotpoints.includes(dp.id)).length;
+    const st = status(dp.id);
+    return meta("dp-counts", `${evCount} example${evCount === 1 ? "" : "s"}`, progressText(dp.id), st !== "none" ? STATUS_LABEL[st] : null);
+  }
+
+  // Open or close one dot point without redrawing the page; only one is open at a time.
+  function toggleDotpoint(dpId) {
+    const prev = ui.openDp;
+    ui.openDp = prev === dpId ? null : dpId;
+    if (prev) setRowOpen(prev, false);
+    if (ui.openDp) setRowOpen(ui.openDp, true);
+  }
+
+  function setRowOpen(dpId, open) {
+    const li = $("dp-" + dpId);
+    if (!li) return;
+    li.querySelector(".dp-toggle").setAttribute("aria-expanded", String(open));
+    const box = li.querySelector(".reveal[id]"); // a panel that is still closing has lost its id
+    if (open && !box) li.append(revealBox(h("div", { class: "dp-detail" }, ...dpBody(dpIndex[dpId])), { id: "dpd-" + dpId }, true));
+    if (!open && box) { box.removeAttribute("id"); collapseBox(box); }
+  }
+
+  // After a confidence change, update the marker, the counts and the pressed button in place.
+  function refreshRowSummary(dpId) {
+    const li = $("dp-" + dpId);
+    if (!li) return;
+    const st = status(dpId);
+    li.querySelector(".dp-toggle .mark").className = "mark m-" + st;
+    li.querySelector(".dp-toggle .dp-counts").replaceWith(rowCounts(dpIndex[dpId]));
+    for (const b of li.querySelectorAll(".status-ctl button")) b.setAttribute("aria-pressed", String(b.classList.contains("s-" + st)));
   }
 
   function dotpointRow(dp) {
     const open = ui.openDp === dp.id;
-    const detailId = "dpd-" + dp.id;
-    const evCount = EV.filter((e) => e.dotpoints.includes(dp.id)).length;
-    const st = status(dp.id);
     const li = h("li", { class: "dp", id: "dp-" + dp.id });
     li.append(h("button", {
-      type: "button", class: "dp-toggle", "aria-expanded": String(open), "aria-controls": detailId,
-      onclick: () => { ui.openDp = open ? null : dp.id; renderSyllabus(); const again = document.querySelector(`#dp-${cssId(dp.id)} .dp-toggle`); if (again) again.focus(); },
+      type: "button", class: "dp-toggle", "aria-expanded": String(open), "aria-controls": "dpd-" + dp.id,
+      onclick: () => toggleDotpoint(dp.id),
     },
-      mark(st),
-      h("span", null, h("span", { class: "dp-text" }, dp.text),
-        meta("dp-counts", `${evCount} example${evCount === 1 ? "" : "s"}`, progressText(dp.id), st !== "none" ? STATUS_LABEL[st] : null)),
-      h("span", { class: "chev", "aria-hidden": "true" }, open ? "Hide" : "Open")));
-    if (open) li.append(h("div", { class: "dp-detail", id: detailId }, ...dpBody(dp, renderSyllabus)));
+      mark(status(dp.id)),
+      h("span", null, h("span", { class: "dp-text" }, dp.text), rowCounts(dp)),
+      chevron()));
+    if (open) li.append(revealBox(h("div", { class: "dp-detail" }, ...dpBody(dp)), { id: "dpd-" + dp.id }, false));
     return li;
   }
-
-  function cssId(id) { return id.replace(/[^a-zA-Z0-9_-]/g, "\\$&"); }
 
   // ---------- EXAMPLES ----------
 
@@ -650,29 +724,33 @@
     const fr = L.freshness(e.date, TODAY_ISO);
     const bodyId = "evb-" + e.id;
     const li = h("li", { class: "ev", id: "ev-" + e.id });
-    li.append(h("button", {
+    const head = h("button", {
       type: "button", class: "ev-head", "aria-expanded": String(open), "aria-controls": bodyId,
       onclick: () => {
-        ui.openEv[e.id] = !open;
-        if (!open) markSeen(e.id);
-        const fresh = evidenceCard(e);
-        li.replaceWith(fresh);
-        fresh.querySelector(".ev-head").focus();
+        const nowOpen = !ui.openEv[e.id];
+        ui.openEv[e.id] = nowOpen;
+        head.setAttribute("aria-expanded", String(nowOpen));
+        if (nowOpen) { markSeen(e.id); li.append(revealBox(evidenceBody(e), { id: bodyId }, true)); }
+        else { const box = li.querySelector(".reveal[id]"); if (box) { box.removeAttribute("id"); collapseBox(box); } }
       },
     },
       h("span", { class: "ev-title" }, e.title),
       h("span", { class: "ev-figure" }, e.keyFigure),
       h("span", { class: "ev-meta" },
-        !progress.seenEvidence[e.id] && h("span", { class: "unread", title: "Not opened yet" }),
         h("span", { class: "chip" }, e.type),
         h("span", { class: `chip fresh-${fr.level}` }, fr.label),
         e.status === "developing" && h("span", { class: "chip developing" }, "Developing story"),
         h("span", null, `${L.fmtDate(e.date)}, ${L.ageText(fr.months)}`),
-        h("span", { class: "ev-tags" }, e.dotpoints.filter((id) => dpIndex[id]).slice(0, 3).map((id) => h("span", { class: "chip quiet" }, dpIndex[id].short))))));
+        h("span", { class: "ev-tags" }, e.dotpoints.filter((id) => dpIndex[id]).slice(0, 3).map((id) => h("span", { class: "chip quiet" }, dpIndex[id].short)))),
+      chevron());
+    li.append(head);
+    if (open) li.append(revealBox(evidenceBody(e), { id: bodyId }, false));
+    return li;
+  }
 
-    if (open) {
+  function evidenceBody(e) {
       const inds = L.relatedIndicators(e, ST);
-      li.append(h("div", { class: "ev-body", id: bodyId },
+      return h("div", { class: "ev-body" },
         e.quote && h("figure", { class: "quote" },
           h("blockquote", null, e.quote.text),
           h("figcaption", null, e.quote.url ? h("a", { href: e.quote.url, target: "_blank", rel: "noopener" }, e.quote.by + " ↗") : e.quote.by)),
@@ -690,9 +768,7 @@
         h("div", { class: "source" },
           h("span", null, "Source: ", h("a", { href: e.source.url, target: "_blank", rel: "noopener" }, e.source.name + " ↗")),
           h("span", null, `Checked ${L.fmtDate(e.checked)}`),
-          h("button", { type: "button", class: "link-btn small", onclick: () => openReport(e.id, e.title) }, "Report a problem"))));
-    }
-    return li;
+          h("button", { type: "button", class: "link-btn small", onclick: () => openReport(e.id, e.title) }, "Report a problem")));
   }
 
   // ---------- STATS ----------
@@ -707,7 +783,7 @@
       h("span", { class: "tile-name" }, ind.short),
       h("span", { class: "tile-value" }, L.fmtValue(ind, v)),
       h("span", { class: "tile-meta" }, h("span", null, L.periodOf(ind)),
-        ch && h("span", { class: "chg" }, `${L.fmtDelta(ind, ch.delta)} y/y`)),
+        ch && h("span", { class: "chg" }, `${L.fmtDelta(ind, ch.delta)} in a year`)),
       sparkline(ind));
   }
 
@@ -773,29 +849,29 @@
       if (t) t.focus({ preventScroll: true });
       const panel = $("stat-title");
       if (panel) {
+        // Bring the chart into view when most of it would be below the fold.
         const r = panel.getBoundingClientRect();
-        if (window.innerWidth < 760 || r.top > window.innerHeight - 120) {
-          panel.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        if (r.top > window.innerHeight * 0.45 || r.top < 0) {
+          panel.scrollIntoView({ block: "start", behavior: reducedMotion() ? "auto" : "smooth" });
         }
       }
     };
+    const ind = indById[ui.statSel];
     const groups = [["headline", "Headline figures"], ["more", "Wages, interest rates, credit and trade"]];
     for (const [g, title] of groups) {
       const inds = ST.indicators.filter((i) => (i.group || "headline") === g);
       if (!inds.length) continue;
       root.append(h("section", { class: "section", "aria-labelledby": "h-stats-" + g },
         h("h2", { id: "h-stats-" + g }, title),
-        h("div", { class: "tiles", role: "group", "aria-label": title }, inds.map((ind) => statTile(ind, pick(ind), ind.id === ui.statSel)))));
+        h("div", { class: "tiles", role: "group", "aria-label": title }, inds.map((i) => statTile(i, pick(i), i.id === ui.statSel)))));
+      // The chart opens straight under the group you picked from, not at the bottom of the page.
+      if (ind && inds.includes(ind)) {
+        root.append(statDetail(ind));
+        if (ind.id === "cash-rate" && ST.cashRateDecisions && ST.cashRateDecisions.length) root.append(decisionsTable());
+      }
     }
-
+    if (!ind) root.append(h("p", { class: "empty" }, "Pick a figure to see its chart, its history and a sentence you can cite in an essay."));
     root.append(suggestLink("Seen a new figure or report that students should know about?"));
-    const ind = indById[ui.statSel];
-    if (!ind) {
-      root.append(h("p", { class: "empty" }, "Pick a figure to see its chart, its history and a sentence you can cite in an essay."));
-      return;
-    }
-    root.append(statDetail(ind));
-    if (ind.id === "cash-rate" && ST.cashRateDecisions && ST.cashRateDecisions.length) root.append(decisionsTable());
   }
 
   // Time ranges for the chart. Where the main series doesn't reach back far enough (monthly CPI
@@ -1090,7 +1166,7 @@
   function startDrill(key) {
     const queue = deckFor(key);
     if (!queue.length) { toast("No flashcards here yet"); return; }
-    ui.drill = { key, queue, i: 0, shown: false, results: { again: 0, hard: 0, good: 0 }, requeued: {} };
+    ui.drill = { key, queue, base: queue.length, i: 0, shown: false, results: { again: 0, hard: 0, good: 0 }, requeued: {} };
     go("drills");
   }
 
@@ -1132,7 +1208,9 @@
 
   function renderCard(root, d) {
     const c = d.queue[d.i];
-    root.append(viewHead("drills", `Card ${d.i + 1} of ${d.queue.length}`, `Flashcards: ${deckTitle(d.key)}`));
+    const extra = d.queue.length - (d.base || d.queue.length);
+    root.append(viewHead("drills", `Card ${d.i + 1} of ${d.queue.length}`,
+      `Flashcards: ${deckTitle(d.key)}.${extra ? ` ${extra} card${extra === 1 ? "" : "s"} you forgot ${extra === 1 ? "comes" : "come"} back at the end.` : ""}`));
     const card = h("div", { class: "flash" });
     card.append(h("div", { class: "progress", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": String(d.queue.length), "aria-valuenow": String(d.i), "aria-label": "Progress" },
       h("span", { style: `width:${(d.i / d.queue.length) * 100}%` })));
@@ -1145,11 +1223,11 @@
         "Show answer ", h("kbd", null, "Space")));
     } else {
       const dps = c.dotpoints.filter((id) => dpIndex[id]);
-      card.append(h("div", { class: "flash-a", "aria-live": "polite" },
+      card.append(revealBox(h("div", { class: "flash-a", "aria-live": "polite" },
         h("p", null, c.a),
         c.source && h("p", { class: "small muted" }, "Source: ", c.source),
         c.kind === "evidence" && h("button", { type: "button", class: "link-btn small", onclick: () => { ui.drill = null; openEvidence(c.ref); } }, "Open the example"),
-        dps.length > 0 && h("p", { class: "small muted" }, "Dot point: ", dpIndex[dps[0]].text)));
+        dps.length > 0 && h("p", { class: "small muted" }, "Dot point: ", dpIndex[dps[0]].text)), {}, true));
       card.append(h("p", { class: "small muted" }, "How well did you know it? Keys 1, 2 and 3 work too."));
       card.append(h("div", { class: "grades" },
         h("button", { type: "button", class: "btn g-again", id: "g-again", onclick: () => gradeCard("again") }, "Forgot", h("small", null, "back later today")),
