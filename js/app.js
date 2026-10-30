@@ -1508,7 +1508,7 @@
         "Flip to see the answer ", h("kbd", null, "Space"));
     }
     return [
-      h("p", { class: "small muted" }, "How well did you know it? Keys 1, 2 and 3 work too. Flip the card again to reread the question."),
+      h("p", { class: "small muted" }, "How well did you know it? Keys 1, 2 and 3 work too. Press Space or tap the card to flip it back and reread the question."),
       h("div", { class: "grades" },
         h("button", { type: "button", class: "btn g-again", id: "g-again", onclick: () => gradeCard("again") }, "Forgot", h("small", null, "back later today")),
         h("button", { type: "button", class: "btn g-hard", id: "g-hard", onclick: () => gradeCard("hard") }, "Unsure", h("small", null, nextGap(c, "hard"))),
@@ -1579,14 +1579,19 @@
         h("button", { type: "button", class: "btn", onclick: () => { ui.drill = null; go("today"); } }, "Back to Home"))));
   }
 
+  // During a card, Space only ever turns the card over, wherever focus is. It never presses the
+  // focused button, so it can't grade the card and move on (after the first flip, focus sits on
+  // "Knew it"). Enter still presses the focused button.
+  const drillKeysOn = (e) => ui.view === "drills" && ui.drill && ui.drill.i < ui.drill.queue.length
+    && !(e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) && !$("report-dialog").open
+    && !(e.altKey || e.ctrlKey || e.metaKey);
   document.addEventListener("keydown", (e) => {
-    if (ui.view !== "drills" || !ui.drill || ui.drill.i >= ui.drill.queue.length) return;
-    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
-    if ($("report-dialog").open) return;
-    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (!drillKeysOn(e)) return;
     const onControl = e.target && /^(BUTTON|A|SUMMARY)$/.test(e.target.tagName);
-    if (e.key === " " || (e.key === "Enter" && !ui.drill.revealed)) {
-      if (onControl) return; // let the focused button do its own job
+    if (e.key === " ") {
+      e.preventDefault();
+      if (!e.repeat) flipCard();
+    } else if (e.key === "Enter" && !ui.drill.revealed && !onControl) {
       e.preventDefault();
       flipCard();
     } else if (ui.drill.revealed && ["1", "2", "3"].includes(e.key)) {
@@ -1594,6 +1599,8 @@
       gradeCard({ 1: "again", 2: "hard", 3: "good" }[e.key]);
     }
   });
+  // Buttons press on Space's key-up, so stop that too.
+  document.addEventListener("keyup", (e) => { if (e.key === " " && drillKeysOn(e)) e.preventDefault(); });
 
   // ---------- ESSAY FEEDBACK ----------
   // Claude marks a practice essay on the student's own Claude account. The draft stays in this
