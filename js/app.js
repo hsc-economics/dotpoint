@@ -1114,15 +1114,23 @@
   }
 
   function mountChart(box, ind, pts) {
-    let lastW = 0, drawn = false;
+    let lastW = 0, drawnAt = 0;
     const draw = () => {
       const w = Math.round(box.clientWidth || 600);
-      if (Math.abs(w - lastW) < 8 && box.firstChild) return;
-      lastW = w;
-      box.replaceChildren(lineChart(ind, pts, w));
-      if (!drawn) { drawn = true; drawIn(box); }
+      let redrawn = false;
+      if (!(Math.abs(w - lastW) < 8 && box.firstChild)) {
+        lastW = w;
+        box.replaceChildren(lineChart(ind, pts, w));
+        redrawn = true;
+      }
+      // Charts are built before they're on the page, when the line has no length to trace, so the
+      // line is drawn in the first time the chart is showing. A resize that replaces the chart while
+      // it is still drawing (a scrollbar appearing, say) starts the drawing again on the new one.
+      if (!box.isConnected || !box.clientWidth) return;
+      if (!drawnAt || (redrawn && performance.now() - drawnAt < 1200)) { drawnAt = performance.now(); drawIn(box); }
     };
     draw();
+    nextFrame(draw); // by then the chart is on the page, even where resize events are slow to arrive
     if (typeof ResizeObserver === "function") {
       const ro = new ResizeObserver(() => { if (!box.isConnected) { ro.disconnect(); return; } draw(); });
       ro.observe(box);
@@ -1434,9 +1442,9 @@
     card.append(h("p", { class: "sr-only", id: "flip-live", "aria-live": "polite" }));
     card.append(h("div", { class: "flash-controls", id: "flash-controls" }, flashControls(d, c)));
     root.append(h("div", { class: "session-layout" }, card, sessionPanel(d)));
-    // Each new card slides in from the right.
-    motion(card.querySelector(".flip"), [{ opacity: 0, transform: "translateX(28px)" }, { opacity: 1, transform: "none" }],
-      { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)" });
+    // Each new card rises in. (Moving up, not sideways, so it never pokes off the edge of a phone.)
+    motion(card.querySelector(".flip"), [{ opacity: 0, transform: "translateY(14px) scale(0.98)" }, { opacity: 1, transform: "none" }],
+      { duration: 300, easing: "cubic-bezier(.2,.8,.2,1)" });
   }
 
   function flashControls(d, c) {

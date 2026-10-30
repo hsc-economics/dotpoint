@@ -201,7 +201,8 @@ h1, h2, .ev, .fa, .dp { scroll-margin-top: 84px; }
 .btn.ghost:hover { background: var(--soft); border-color: transparent; }
 .btn.small { min-height: 40px; padding: 6px 14px; font-size: var(--fs-sm); }
 .btn.ghost.small { padding-inline: 8px; }
-.section-head .btn.ghost { margin-inline: -8px; } /* line the text up with the column edge */
+.section-head .btn.ghost { padding-inline: 0; } /* text sits flush with the column edge, nothing hangs over it */
+.section-head .btn.ghost:hover { background: none; text-decoration-thickness: 2px; }
 .btn[disabled] { opacity: 0.45; cursor: not-allowed; }
 .btn[disabled]:hover { border-color: var(--rule-strong); }
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
@@ -211,7 +212,11 @@ h1, h2, .ev, .fa, .dp { scroll-margin-top: 84px; }
 }
 .link-btn:hover { text-decoration-thickness: 2px; }
 /* text links keep their look but get a 44px-tall hit area */
-.link-btn, .fa-head a, .source a, .quote figcaption a, footer a { padding-block: 11px; margin-block: -11px; }
+/* Standalone text links get a real 44px tap height, so wrapped neighbours never share a tap area.
+   Links inside running text keep the line height and borrow a little space above and below instead. */
+.link-btn, .fa-head a, .source a, .quote figcaption a, footer .btn-row a { display: inline-flex; align-items: center; min-height: 44px; }
+.seq .link-btn, footer p:not(.btn-row) a { display: inline; min-height: 0; padding-block: 6px; margin-block: -6px; }
+.seq { row-gap: 10px; }
 
 /* ---------- indicator grid (home and stats) ---------- */
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
