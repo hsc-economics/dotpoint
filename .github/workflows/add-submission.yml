@@ -3,7 +3,7 @@
 # Read the issue, edit it if anything needs fixing, then add the "approved" label. This workflow
 # turns it into an example card, runs the tests, saves it, republishes the site and closes the issue.
 # If something in the suggestion breaks the rules, it comments on the issue with what to fix.
-# Only the repository owner's label counts.
+# Only labels added by someone with admin or write access to the repository count.
 name: Add an approved submission
 
 on:
@@ -23,13 +23,22 @@ jobs:
   add:
     if: >-
       github.event.label.name == 'approved' &&
-      contains(github.event.issue.labels.*.name, 'submission') &&
-      github.event.sender.login == github.repository_owner
+      contains(github.event.issue.labels.*.name, 'submission')
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
       ISSUE: ${{ github.event.issue.number }}
     steps:
+      - name: Check the label came from a maintainer
+        env:
+          SENDER: ${{ github.event.sender.login }}
+        run: |
+          role=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$SENDER/permission" --jq .permission 2>/dev/null || echo none)
+          echo "$SENDER has $role access"
+          if [ "$role" != "admin" ] && [ "$role" != "write" ]; then
+            echo "Only maintainers (admin or write access) can approve suggestions." > "$RUNNER_TEMP/not-maintainer"
+            exit 1
+          fi
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
@@ -56,6 +65,11 @@ jobs:
       - name: Say what needs fixing
         if: failure()
         run: |
+          if [ -f "$RUNNER_TEMP/not-maintainer" ]; then
+            gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "Only the site's maintainers can approve suggestions, so this label was removed."
+            gh issue edit "$ISSUE" --repo "$GITHUB_REPOSITORY" --remove-label approved
+            exit 0
+          fi
           if [ -f submission-errors.md ]; then
             gh issue comment "$ISSUE" --body-file submission-errors.md
           else
