@@ -147,6 +147,50 @@
     setTimeout(() => layer.remove(), 3400);
   }
 
+  // The opening moment, once per visit: a big dot pops up in the middle of the screen, spins like a
+  // coin, then shrinks and flies into the logo in the corner. A click or key press skips it.
+  function introDot() {
+    try {
+      if (sessionStorage.getItem("dotpoint.intro")) return;
+      sessionStorage.setItem("dotpoint.intro", "1");
+    } catch (e) { /* storage blocked: play it anyway */ }
+    const target = document.querySelector(".brand-dot");
+    if (!target || reducedMotion() || typeof target.animate !== "function") return;
+    const t = target.getBoundingClientRect();
+    if (!t.width || t.bottom < 0) return;
+    const size = Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.34);
+    const dot = h("div", { class: "intro-dot", style: `width:${size}px;height:${size}px;margin:${-size / 2}px 0 0 ${-size / 2}px;border-width:${Math.round(size * 0.15)}px` });
+    const veil = h("div", { class: "intro-veil", "aria-hidden": "true" }, dot);
+    document.body.append(veil);
+    target.style.visibility = "hidden";
+
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      veil.remove();
+      target.style.visibility = "";
+      motion(target, [{ transform: "scale(1.6)" }, { transform: "scale(0.85)" }, { transform: "scale(1)" }],
+        { duration: 360, easing: "cubic-bezier(.3,1.6,.5,1)" });
+      window.removeEventListener("keydown", finish);
+    };
+    const dx = t.left + t.width / 2 - window.innerWidth / 2;
+    const dy = t.top + t.height / 2 - window.innerHeight / 2;
+    const end = t.width / size;
+    const spin = dot.animate([
+      { transform: "translate(0, 0) scale(0) rotateY(0deg)", offset: 0 },
+      { transform: "translate(0, 0) scale(1.1) rotateY(300deg)", offset: 0.28 },
+      { transform: "translate(0, 0) scale(1) rotateY(720deg)", offset: 0.6 },
+      { transform: "translate(0, 0) scale(1) rotateY(720deg)", offset: 0.66 },
+      { transform: `translate(${dx}px, ${dy}px) scale(${end}) rotateY(720deg)`, offset: 1 },
+    ], { duration: 1900, easing: "cubic-bezier(.45,0,.25,1)", fill: "forwards" });
+    veil.animate([{ opacity: 1 }, { opacity: 1, offset: 0.62 }, { opacity: 0 }], { duration: 1900, fill: "forwards" });
+    spin.onfinish = finish;
+    veil.addEventListener("click", finish);
+    window.addEventListener("keydown", finish);
+    setTimeout(finish, 2600); // never leave the page covered, even if animations are paused
+  }
+
   let toastTimer = null;
   function toast(msg) {
     const t = $("toast");
@@ -160,10 +204,19 @@
     }, 3200);
   }
 
-  async function copyText(text, fallbackEl) {
+  // Copy text; the button itself says what happened, then goes back to its label.
+  async function copyText(text, fallbackEl, btn) {
+    const say = (msg, ms) => {
+      if (!btn) return;
+      const label = btn.dataset.label || btn.textContent;
+      btn.dataset.label = label;
+      btn.textContent = msg;
+      clearTimeout(btn._copyTimer);
+      btn._copyTimer = setTimeout(() => { btn.textContent = label; }, ms);
+    };
     try {
       await navigator.clipboard.writeText(text);
-      toast("Copied");
+      say("Copied ✓", 1800);
     } catch (e) {
       if (fallbackEl) {
         const range = document.createRange();
@@ -172,7 +225,7 @@
         sel.removeAllRanges();
         sel.addRange(range);
       }
-      toast("Text selected: press Ctrl+C or Cmd+C to copy");
+      say("Selected: press Ctrl+C or Cmd+C", 4000);
     }
   }
 
@@ -279,6 +332,8 @@
     $("reason-wrong").checked = true;
     $("report-fallback").hidden = true;
     $("report-send").hidden = false;
+    $("report-send").disabled = false;
+    $("report-send").textContent = "Send report";
     $("report-cancel").textContent = "Cancel";
     const d = $("report-dialog");
     if (typeof d.showModal === "function") d.showModal(); else d.setAttribute("open", "");
@@ -307,8 +362,9 @@
     }
     $("report-send").disabled = false;
     if (sent) {
-      closeReport();
-      toast("Report sent. Thank you for helping keep Dotpoint accurate.");
+      $("report-send").textContent = "Sent ✓ Thank you";
+      $("report-send").disabled = true;
+      setTimeout(closeReport, 1100);
     } else {
       $("report-copy").value = `Dotpoint report\nItem: ${r.target || "site"}\nProblem: ${r.reason}\nDetails: ${r.note || "(none)"}\nDate: ${r.at.slice(0, 10)}`;
       $("report-fallback").hidden = false;
@@ -674,7 +730,7 @@
     dotBurst(r.left + r.width / 2, r.top + r.height / 2, 12);
     const fa = dpIndex[dpId].focus;
     if (fa.dotpoints.every((x) => status(x.id) === "confident")) {
-      setTimeout(() => { dotShower(40); toast(`Every dot point in ${fa.name} marked confident.`); }, 350);
+      setTimeout(() => dotShower(40), 350);
     }
   }
 
@@ -1011,7 +1067,7 @@
     const quote = h("blockquote", { class: "cite", id: "cite-text" }, sentence);
     panel.append(h("p", { class: "sublabel" }, "Ready-to-use sentence"), quote,
       h("div", { class: "btn-row" },
-        h("button", { type: "button", class: "btn small", onclick: () => copyText(sentence, quote) }, "Copy sentence"),
+        h("button", { type: "button", class: "btn small", onclick: (ev) => copyText(sentence, quote, ev.currentTarget) }, "Copy sentence"),
         h("span", { class: "small muted" }, "Always say where a statistic comes from.")));
 
     const rel = L.relatedExamples(ind, EV).slice(0, 4);
@@ -1245,7 +1301,7 @@
   function startDrill(key) {
     const queue = deckFor(key);
     if (!queue.length) { toast("No flashcards here yet"); return; }
-    ui.drill = { key, queue, base: queue.length, i: 0, shown: false, results: { again: 0, hard: 0, good: 0 }, requeued: {} };
+    ui.drill = { key, queue, base: queue.length, i: 0, shown: false, results: { again: 0, hard: 0, good: 0 }, requeued: {}, log: [] };
     go("drills");
   }
 
@@ -1256,10 +1312,10 @@
     if (d && d.i < d.queue.length) return renderCard(root, d);
     if (d && d.i >= d.queue.length) return renderSummary(root, d);
 
-    const learned = deck.filter((c) => progress.cards[c.id] && progress.cards[c.id].box >= 3).length;
     root.append(viewHead("drills", "Flashcards",
       "Recall practice on examples, statistics and key terms, using spaced repetition: cards you get wrong come back sooner, cards you know come back later."));
-    root.append(h("p", { class: "small muted" }, `${learned} of ${deck.length} cards learned (answered correctly at least three times in a row).`));
+    const main = h("div", { class: "section" });
+    root.append(h("div", { class: "drills-layout" }, main, progressPanel()));
 
     const dueQ = L.dueQueue(deck, progress.cards, TODAY);
     const dueCount = dueQ.length;
@@ -1276,11 +1332,75 @@
         return ["fa:" + fa.id, fa.name, `Year ${fa.year}, ${n} card${n === 1 ? "" : "s"}`, n];
       }),
     ];
-    root.append(h("div", { class: "deck-list" }, decks.map(([key, title, detail, n]) => h("button", {
-      type: "button", class: "deck", disabled: n ? null : true, onclick: () => startDrill(key),
-    }, h("strong", null, title), h("span", { class: "count" }, detail)))));
-    root.append(h("p", { class: "small muted" }, "Keyboard: ", h("kbd", null, "Space"), " shows the answer, then ",
-      h("kbd", null, "1"), " forgot, ", h("kbd", null, "2"), " unsure, ", h("kbd", null, "3"), " knew it."));
+    main.append(h("h2", null, "Choose a deck"),
+      h("div", { class: "deck-list" }, decks.map(([key, title, detail, n]) => h("button", {
+        type: "button", class: "deck", disabled: n ? null : true, onclick: () => startDrill(key),
+      }, h("strong", null, title), h("span", { class: "count" }, detail)))),
+      h("p", { class: "small muted" }, "Keyboard: ", h("kbd", null, "Space"), " flips the card, then ",
+        h("kbd", null, "1"), " forgot, ", h("kbd", null, "2"), " unsure, ", h("kbd", null, "3"), " knew it."));
+  }
+
+  // Where your cards stand, what's due over the next week, and how the spacing works.
+  function progressPanel() {
+    const states = progress.cards;
+    const learned = deck.filter((c) => states[c.id] && states[c.id].box >= 3).length;
+    const learning = deck.filter((c) => states[c.id] && states[c.id].box < 3).length;
+    const fresh = deck.length - learned - learning;
+    const pct = (n, of) => `${(n / Math.max(1, of)) * 100}%`;
+    const today = L.dayNumber(TODAY);
+    const week = Array.from({ length: 7 }, (_, k) => {
+      const n = deck.filter((c) => states[c.id] && (k === 0 ? states[c.id].due <= today : states[c.id].due === today + k)).length;
+      const label = k === 0 ? "Today" : new Date(TODAY.getTime() + k * L.DAY).toLocaleDateString("en-AU", { weekday: "short", timeZone: "UTC" });
+      return { n, label };
+    });
+    const most = Math.max(1, ...week.map((x) => x.n));
+    const num = (n, label, cls) => h("div", { class: "pnum " + cls }, h("b", null, String(n)), h("span", { class: "small muted" }, label));
+    return h("aside", { class: "panel side-panel", "aria-labelledby": "h-progress" },
+      h("h2", { id: "h-progress" }, "Your progress"),
+      h("div", { class: "split-bar", role: "img", "aria-label": `${learned} learned, ${learning} in progress, ${fresh} not started, out of ${deck.length}` },
+        h("span", { class: "seg-learned", style: `width:${pct(learned, deck.length)}` }),
+        h("span", { class: "seg-learning", style: `width:${pct(learning, deck.length)}` })),
+      h("div", { class: "pnums" }, num(learned, "learned", "learned"), num(learning, "in progress", "learning"), num(fresh, "not started", "fresh")),
+      h("p", { class: "sublabel" }, "Coming up this week"),
+      week.some((x) => x.n)
+        ? h("div", { class: "week", role: "img", "aria-label": week.map((x) => `${x.label}: ${x.n}`).join(", ") },
+          week.map((x) => h("div", { class: "week-day" },
+            h("span", { class: "week-n" }, x.n ? String(x.n) : ""),
+            h("span", { class: "week-track" }, h("span", { class: "week-bar", style: `height:${Math.round((x.n / most) * 100)}%` })),
+            h("span", { class: "week-label" }, x.label))))
+        : h("p", { class: "small muted" }, "Nothing scheduled yet. Cards you study are spaced out over the coming days and show up here."),
+      h("p", { class: "sublabel" }, "How spacing works"),
+      h("div", { class: "ladder" }, L.INTERVALS.slice(1).map((days, i) =>
+        h("span", { class: "rung" }, mark(i >= 2 ? "confident" : "shaky"), days === 1 ? "1 day" : `${days} days`))),
+      h("p", { class: "small muted" }, "Each time you know a card it moves one step along and comes back later. Forget it and it starts again. From the third step it counts as learned."),
+      h("p", { class: "sublabel" }, "By focus area"),
+      h("ul", { class: "fa-progress" }, SY.focusAreas.map((fa) => {
+        const ids = new Set(fa.dotpoints.map((x) => x.id));
+        const cards = deck.filter((c) => c.dotpoints.some((id) => ids.has(id)));
+        const l = cards.filter((c) => states[c.id] && states[c.id].box >= 3).length;
+        return h("li", null, h("span", { class: "fa-name" }, fa.name),
+          h("span", { class: "mini-bar", "aria-hidden": "true" }, h("span", { style: `width:${pct(l, cards.length)}` })),
+          h("span", { class: "small muted" }, `${l} of ${cards.length}`));
+      })));
+  }
+
+  // One dot per card in the session: filled in the colour of your answer as you go.
+  function sessionPanel(d) {
+    const r = d.results;
+    const name = { again: "forgot", hard: "unsure", good: "knew it" };
+    return h("aside", { class: "panel side-panel", "aria-labelledby": "h-session" },
+      h("h2", { id: "h-session" }, "This session"),
+      h("div", { class: "session-dots", role: "img", "aria-label": `${d.i} of ${d.queue.length} cards done` },
+        d.queue.map((c, i) => h("span", { class: "sdot" + (i < d.i ? " done g-" + d.log[i] : i === d.i ? " now" : ""),
+          title: i < d.i ? name[d.log[i]] : i === d.i ? "this card" : "to come" }))),
+      h("div", { class: "pnums" },
+        h("div", { class: "pnum learned" }, h("b", null, String(r.good)), h("span", { class: "small muted" }, "knew it")),
+        h("div", { class: "pnum learning" }, h("b", null, String(r.hard)), h("span", { class: "small muted" }, "unsure")),
+        h("div", { class: "pnum forgot" }, h("b", null, String(r.again)), h("span", { class: "small muted" }, "forgot"))),
+      h("p", { class: "sublabel" }, "Shortcuts"),
+      h("dl", { class: "keys" },
+        [["Space", "Flip the card"], ["1", "Forgot"], ["2", "Unsure"], ["3", "Knew it"]].map(([k, v]) =>
+          h("div", null, h("dt", null, h("kbd", null, k)), h("dd", null, v)))));
   }
 
   const KIND_LABEL = { evidence: "Example", term: "Key term", stat: "Statistic" };
@@ -1313,7 +1433,7 @@
       h("div", { class: "flip-inner" }, front, back)));
     card.append(h("p", { class: "sr-only", id: "flip-live", "aria-live": "polite" }));
     card.append(h("div", { class: "flash-controls", id: "flash-controls" }, flashControls(d, c)));
-    root.append(card);
+    root.append(h("div", { class: "session-layout" }, card, sessionPanel(d)));
     // Each new card slides in from the right.
     motion(card.querySelector(".flip"), [{ opacity: 0, transform: "translateX(28px)" }, { opacity: 1, transform: "none" }],
       { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)" });
@@ -1369,6 +1489,7 @@
     }
     commit((p) => { p.cards[c.id] = L.grade(p.cards[c.id], result, TODAY); });
     d.results[result]++;
+    d.log[d.i] = result;
     if (result === "again" && !d.requeued[c.id]) { d.requeued[c.id] = true; d.queue.push(c); }
     d.i++;
     d.shown = false;
@@ -1783,7 +1904,6 @@
       if (dotClicks.length >= 5) {
         dotClicks = [];
         dotShower(48);
-        toast(reducedMotion() ? "You found the secret dot. Back to studying!" : "You found the secret dot shower. Back to studying!");
       }
     });
     if (SUGGEST_URL) { $("suggest-footer").href = SUGGEST_URL; $("suggest-footer").hidden = false; }
@@ -1803,6 +1923,7 @@
     window.addEventListener("popstate", fromLocation);
     window.addEventListener("hashchange", fromLocation);
     updateBadge();
+    introDot();
     Sync.init().then(() => Essays.load()).then(() => { if (ui.view === "essay" && ui.essay.mode === "write") renderEssay(); });
   }
 
