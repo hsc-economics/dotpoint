@@ -4,6 +4,9 @@
     .ink { stroke: #18211d; }
     @media (prefers-color-scheme: dark) { .ink { stroke: #e6ece7; } }
   </style>
-  <polyline class="ink" points="7,51 21,37 31,43 45,21" fill="none" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle class="ink" cx="45" cy="21" r="12" fill="#eedd3a" stroke-width="5"/>
+  <circle cx="37" cy="37" r="21" fill="#eedd3a"/>
+  <g fill="none" stroke-width="6.5" stroke-linecap="round">
+    <path class="ink" d="M40 8 C24 2 6 13 6.5 30 C7 46 20 52.5 30 51.5 C44 50.5 51.5 40 50.5 27 C49.5 14 38 5.5 24 8.5"/>
+    <path d="M23 26 C27 24.5 33 27 39.5 25" stroke="#18211d"/>
+  </g>
 </svg>
