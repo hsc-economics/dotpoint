@@ -147,25 +147,25 @@
     setTimeout(() => layer.remove(), 3400);
   }
 
-  // The opening moment, once per visit: a big dot pops up in the middle of the screen, spins like a
-  // coin, then shrinks and lands as the logo's yellow dot. The ink ring then draws itself around it,
-  // followed by the note line. A click or key press skips it.
+  // The opening moment, once per visit: a big copy of the logo pops up in the middle of the screen,
+  // spins like a coin, then shrinks and flies into the corner, landing exactly on the logo. A click
+  // or key press skips it.
   function introDot() {
     try {
       if (sessionStorage.getItem("dotpoint.intro")) return;
       sessionStorage.setItem("dotpoint.intro", "1");
     } catch (e) { /* storage blocked: play it anyway */ }
-    const target = document.querySelector(".brand-dot");
+    const target = document.querySelector(".brand-mark");
     if (!target || reducedMotion() || typeof target.animate !== "function") return;
     const t = target.getBoundingClientRect();
     if (!t.width || t.bottom < 0) return;
     const size = Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.34);
-    const dot = h("div", { class: "intro-dot", style: `width:${size}px;height:${size}px;margin:${-size / 2}px 0 0 ${-size / 2}px` });
-    const veil = h("div", { class: "intro-veil", "aria-hidden": "true" }, dot);
+    const big = target.cloneNode(true);
+    big.setAttribute("class", "intro-mark");
+    big.setAttribute("style", `width:${size}px;height:${size}px;margin:${-size / 2}px 0 0 ${-size / 2}px`);
+    const veil = h("div", { class: "intro-veil", "aria-hidden": "true" }, big);
     document.body.append(veil);
-    const lines = [...document.querySelectorAll(".brand-line")];
     target.style.visibility = "hidden";
-    for (const line of lines) line.style.visibility = "hidden";
 
     let finished = false;
     const finish = () => {
@@ -173,26 +173,14 @@
       finished = true;
       veil.remove();
       target.style.visibility = "";
-      motion(target, [{ transform: "scale(1.6)" }, { transform: "scale(0.85)" }, { transform: "scale(1)" }],
+      motion(target.querySelector(".brand-art"), [{ transform: "scale(1.4)" }, { transform: "scale(0.88)" }, { transform: "scale(1)" }],
         { duration: 360, easing: "cubic-bezier(.3,1.6,.5,1)" });
-      let delay = 120;
-      for (const line of lines) {
-        line.style.visibility = "";
-        const len = typeof line.getTotalLength === "function" ? Math.ceil(line.getTotalLength()) : 0;
-        if (!len) continue;
-        const duration = Math.round(Math.min(560, 120 + len * 3.2)); // the ring takes longer than the short line
-        line.style.strokeDasharray = `${len}`;
-        const draw = motion(line, [{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration, delay, easing: "cubic-bezier(.3,.6,.2,1)", fill: "backwards" });
-        if (draw) draw.onfinish = () => { line.style.strokeDasharray = ""; };
-        else line.style.strokeDasharray = "";
-        delay += duration - 80;
-      }
       window.removeEventListener("keydown", finish);
     };
     const dx = t.left + t.width / 2 - window.innerWidth / 2;
     const dy = t.top + t.height / 2 - window.innerHeight / 2;
     const end = t.width / size;
-    const spin = dot.animate([
+    const spin = big.animate([
       { transform: "translate(0, 0) scale(0) rotateY(0deg)", offset: 0 },
       { transform: "translate(0, 0) scale(1.1) rotateY(300deg)", offset: 0.28 },
       { transform: "translate(0, 0) scale(1) rotateY(720deg)", offset: 0.6 },
@@ -1918,7 +1906,7 @@
     $("report-general").addEventListener("click", () => openReport("site", ""));
     let dotClicks = [];
     document.querySelector(".brand").addEventListener("click", () => {
-      motion(document.querySelector(".brand-dot"), [
+      motion(document.querySelector(".brand-art"), [
         { transform: "translateY(0) scale(1, 1)" }, { transform: "translateY(-9px) scale(0.9, 1.12)" },
         { transform: "translateY(0) scale(1.25, 0.78)" }, { transform: "translateY(-3px) scale(0.96, 1.04)" }, { transform: "translateY(0) scale(1, 1)" },
       ], { duration: 520, easing: "ease-out" });

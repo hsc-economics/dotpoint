@@ -133,8 +133,10 @@ a:hover { text-decoration-thickness: 2px; }
 /* the logo: a yellow dot with a loose ink ring drawn just off it and one note line (same drawing as icons/favicon.svg) */
 .brand-line { fill: none; stroke: var(--ink); stroke-width: 6.5; stroke-linecap: round; }
 .brand-note { stroke: #18211d; } /* sits on the yellow, so it stays dark in both themes */
-.brand-dot { fill: var(--hl); transform-box: fill-box; transform-origin: center; transition: transform 0.2s ease; }
-.brand:hover .brand-dot { transform: scale(1.15); }
+.brand-dot { fill: var(--hl); }
+/* the dot, ring and note line move together as one piece */
+.brand-art { transform-box: fill-box; transform-origin: center; transition: transform 0.2s ease; }
+.brand:hover .brand-art { transform: scale(1.1); }
 .subject { font-size: var(--fs-sm); color: var(--muted); padding-left: 16px; border-left: 1px solid var(--rule); line-height: 1.2; }
 .tabs { display: flex; gap: 4px; margin-left: auto; }
 .tab {
@@ -634,7 +636,7 @@ textarea.field { min-height: 100px; resize: vertical; }
 .mark { transform-origin: center; }
 /* the opening moment: a big dot on a paper veil that flies into the logo */
 .intro-veil { position: fixed; inset: 0; z-index: 90; background: var(--paper); perspective: 1200px; cursor: pointer; }
-.intro-dot { position: absolute; left: 50%; top: 50%; border-radius: 50%; background: var(--hl); }
+.intro-mark { position: absolute; left: 50%; top: 50%; overflow: visible; }
 /* easter-egg dots float above everything and never catch clicks */
 .fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 80; overflow: hidden; }
 .fx-dot { position: absolute; border-radius: 50%; border: 1.5px solid var(--ink); }
@@ -667,7 +669,7 @@ textarea.field { min-height: 100px; resize: vertical; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
   .flip-inner { transition: none; }
-  .tile:hover, .deck:hover, .brand:hover .brand-dot, .btn:active, .tag:active, .tile:active, .deck:active, .tab:active, .seg button:active, .range button:active, .status-ctl button:active { transform: none; }
+  .tile:hover, .deck:hover, .brand:hover .brand-art, .btn:active, .tag:active, .tile:active, .deck:active, .tab:active, .seg button:active, .range button:active, .status-ctl button:active { transform: none; }
 }
 </style>
 
@@ -675,7 +677,7 @@ textarea.field { min-height: 100px; resize: vertical; }
 
 <header class="topbar">
   <div class="wrap">
-    <a class="brand" href="#today" data-nav="today" aria-label="Dotpoint home"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle class="brand-dot" cx="37" cy="37" r="21"/><path class="brand-line" d="M40 8 C24 2 6 13 6.5 30 C7 46 20 52.5 30 51.5 C44 50.5 51.5 40 50.5 27 C49.5 14 38 5.5 24 8.5"/><path class="brand-line brand-note" d="M23 26 C27 24.5 33 27 39.5 25"/></svg>Dotpoint</a>
+    <a class="brand" href="#today" data-nav="today" aria-label="Dotpoint home"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><g class="brand-art"><circle class="brand-dot" cx="37" cy="37" r="21"/><path class="brand-line" d="M40 8 C24 2 6 13 6.5 30 C7 46 20 52.5 30 51.5 C44 50.5 51.5 40 50.5 27 C49.5 14 38 5.5 24 8.5"/><path class="brand-line brand-note" d="M23 26 C27 24.5 33 27 39.5 25"/></g></svg>Dotpoint</a>
     <span class="subject">HSC Economics</span>
     <nav class="tabs" aria-label="Main">
       <button type="button" class="tab" data-nav="today">
