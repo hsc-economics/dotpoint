@@ -805,65 +805,69 @@
         h("button", { type: "button", class: "btn ghost small", onclick: () => go("stats") }, "All 20 figures and charts")),
       h("div", { class: "tiles home-tiles" }, homeInds.map((ind) => statTile(ind, () => { ui.statSel = ind.id; go("stats"); })))));
 
-    root.append(newsSection());
+    root.append(newsSection(), newestExamples(), studyBand());
+  }
 
-    const grid = h("div", { class: "grid-2" });
-    const left = h("div", { class: "section" });
-    const right = h("div", { class: "section" });
+  // The six newest examples as a grid, each led by the figure you'd quote.
+  function newestExamples() {
+    const newest = EV.slice().sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6);
+    return h("section", { class: "section", "aria-labelledby": "h-new-ev" },
+      h("div", { class: "section-head" },
+        h("div", null,
+          h("h2", { id: "h-new-ev" }, "Newest examples"),
+          h("p", { class: "small muted" }, "Recent figures and events you can quote, each checked against its source.")),
+        h("button", { type: "button", class: "btn ghost small", onclick: () => go("evidence") }, `All ${EV.length} examples`)),
+      h("ul", { class: "ev-grid" }, newest.map((e) => h("li", null,
+        h("button", { type: "button", onclick: () => openEvidence(e.id) },
+          h("span", { class: "ev-fig" }, e.keyFigure),
+          h("span", { class: "ev-title" }, e.title),
+          meta("dp-counts", e.type, L.fmtDate(e.date), L.freshness(e.date, TODAY_ISO).label))))));
+  }
 
-    // Revision
+  // Everything that's yours sits on one tinted band: flashcards, essay practice and how you rate each focus area.
+  function studyBand() {
     const dueReviews = L.dueQueue(deck, progress.cards, TODAY).filter((c) => progress.cards[c.id]).length;
     const dueAll = L.dueQueue(deck, progress.cards, TODAY).length;
-    left.append(h("section", { class: "panel revise", "aria-labelledby": "h-revise" },
-      h("div", null,
-        h("h2", { id: "h-revise" }, "Flashcards"),
-        h("p", { class: "muted small" }, dueReviews
-          ? `${dueReviews} card${dueReviews === 1 ? "" : "s"} due for review today.`
-          : dueAll ? `Nothing due for review. ${dueAll} new cards available.` : "Nothing due today.")),
-      h("button", { type: "button", class: "btn primary", disabled: dueAll ? null : true, onclick: () => startDrill("due") },
-        dueReviews ? "Review due cards" : "Start 10 new cards")));
-
     const lastEssay = Essays.list[0];
-    left.append(h("section", { class: "panel revise", "aria-labelledby": "h-essay-home" },
-      h("div", null,
-        h("h2", { id: "h-essay-home" }, "Essay feedback"),
-        h("p", { class: "muted small" }, lastEssay
-          ? `Your last essay was marked ${lastEssay.result.mark}/${lastEssay.result.outOf}.`
-          : "Get a practice essay marked, with every statistic checked against the latest data.")),
-      h("button", { type: "button", class: "btn", onclick: () => go("essay") }, lastEssay ? "Mark another essay" : "Mark an essay")));
-
-    // Syllabus directory
-    // Your dot points: one marker per dot point, filled in as confidence grows
     const allSt = SY.focusAreas.flatMap((fa) => fa.dotpoints.map((dp) => status(dp.id)));
     const nConf = allSt.filter((x) => x === "confident").length;
     const nShaky = allSt.filter((x) => x === "shaky").length;
-    left.append(h("section", { class: "section", "aria-labelledby": "h-dir" },
-      h("div", { class: "section-head" },
-        h("div", null,
-          h("h2", { id: "h-dir" }, "Your dot points"),
-          h("p", { class: "small muted" }, nConf || nShaky
-            ? `${nConf} confident and ${nShaky} getting there, out of ${allSt.length}.`
-            : `${allSt.length} dot points. Open one and mark how confident you feel.`)),
-        h("button", { type: "button", class: "btn ghost small", onclick: () => go("syllabus") }, "All dot points")),
-      h("ul", { class: "directory" }, SY.focusAreas.map((fa) => {
-        const sts = fa.dotpoints.map((dp) => status(dp.id));
-        const c = sts.filter((x) => x === "confident").length;
-        return h("li", null, h("button", {
-          type: "button", onclick: () => { ui.year = fa.year; ui.openDp = null; go("syllabus", { focus: false }); const el = $("fa-" + fa.id); if (el) el.scrollIntoView({ block: "start" }); },
-        },
-          h("span", { class: "dir-year" }, `Year ${fa.year}`),
-          h("span", { class: "dir-name" }, fa.name),
-          h("span", { class: "dir-marks", "aria-hidden": "true" }, sts.map(mark)),
-          h("span", { class: "dp-counts" }, `${c} of ${fa.dotpoints.length} confident`)));
-      }))));
-
-    right.append(h("div", { class: "section-head" },
-      h("h2", null, "Newest examples"),
-      h("button", { type: "button", class: "btn ghost small", onclick: () => go("evidence") }, "All examples")));
-    right.append(h("ul", { class: "mini-ev" }, EV.slice().sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6).map(exampleRow)));
-
-    grid.append(left, right);
-    root.append(grid);
+    return h("section", { class: "study-band", "aria-labelledby": "h-study" },
+      h("h2", { id: "h-study" }, "Your study"),
+      h("div", { class: "study-actions" },
+        h("section", { class: "panel revise", "aria-labelledby": "h-revise" },
+          h("div", null,
+            h("h3", { id: "h-revise" }, "Flashcards"),
+            h("p", { class: "muted small" }, dueReviews
+              ? `${dueReviews} card${dueReviews === 1 ? "" : "s"} due for review today.`
+              : dueAll ? `Nothing due for review. ${dueAll} new cards available.` : "Nothing due today.")),
+          h("button", { type: "button", class: "btn primary", disabled: dueAll ? null : true, onclick: () => startDrill("due") },
+            dueReviews ? "Review due cards" : "Start 10 new cards")),
+        h("section", { class: "panel revise", "aria-labelledby": "h-essay-home" },
+          h("div", null,
+            h("h3", { id: "h-essay-home" }, "Essay feedback"),
+            h("p", { class: "muted small" }, lastEssay
+              ? `Your last essay was marked ${lastEssay.result.mark}/${lastEssay.result.outOf}.`
+              : "Get a practice essay marked, with every statistic checked against the latest data.")),
+          h("button", { type: "button", class: "btn", onclick: () => go("essay") }, lastEssay ? "Mark another essay" : "Mark an essay"))),
+      h("section", { class: "section", "aria-labelledby": "h-dir" },
+        h("div", { class: "section-head" },
+          h("div", null,
+            h("h3", { id: "h-dir" }, "Your dot points"),
+            h("p", { class: "small muted" }, nConf || nShaky
+              ? `${nConf} confident and ${nShaky} getting there, out of ${allSt.length}.`
+              : `${allSt.length} dot points. Open one and mark how confident you feel.`)),
+          h("button", { type: "button", class: "btn ghost small", onclick: () => go("syllabus") }, "All dot points")),
+        h("ul", { class: "fa-tiles" }, SY.focusAreas.map((fa) => {
+          const sts = fa.dotpoints.map((dp) => status(dp.id));
+          const c = sts.filter((x) => x === "confident").length;
+          return h("li", null, h("button", {
+            type: "button", onclick: () => { ui.year = fa.year; ui.openDp = null; go("syllabus", { focus: false }); const el = $("fa-" + fa.id); if (el) el.scrollIntoView({ block: "start" }); },
+          },
+            h("span", { class: "fa-tile-top" }, h("span", null, `Year ${fa.year}`), h("span", null, `${c} of ${fa.dotpoints.length} confident`)),
+            h("span", { class: "dir-name" }, fa.name),
+            h("span", { class: "dir-marks", "aria-hidden": "true" }, sts.map(mark))));
+        }))));
   }
 
   function renderHomeResults(box) {
@@ -1160,24 +1164,26 @@
     const total = cols.reduce((n, c) => n + c.items.length, 0);
     const section = h("section", { class: "section", id: "news", "aria-labelledby": "h-news" });
     const draw = () => {
-      const shown = ui.newsAll ? 12 : 5;
-      const more = cols.some((c) => c.items.length > 5);
+      const shown = ui.newsAll ? 12 : 4;
+      const more = cols.some((c) => c.items.length > 4);
       section.replaceChildren(
         h("div", { class: "section-head" },
           h("div", null,
             h("h2", { id: "h-news" }, "In the news"),
             h("p", { class: "small muted" }, total
-              ? `Top stories from ${L.andList(N.sources)}, ranked by how widely they're covered and how closely they link to the syllabus. Updated ${L.timeAgo(N.generatedAt, nowMs)}.`
-              : "No stories from the last few days. The list refreshes several times a day.")),
-          more ? h("button", {
-            type: "button", class: "btn ghost small", "aria-expanded": ui.newsAll ? "true" : "false", "aria-controls": "news-cols",
-            onclick: () => { ui.newsAll = !ui.newsAll; draw(); },
-          }, ui.newsAll ? "Show fewer stories" : "Show more stories") : null),
-        total ? h("div", { class: "grid-2", id: "news-cols" }, cols.map((c) => h("div", { class: "news-col" },
+              ? `The biggest stories that link to the syllabus. Updated ${L.timeAgo(N.generatedAt, nowMs)}.`
+              : "No stories from the last few days. The list refreshes several times a day."))),
+        total ? h("div", { class: "grid-2 news-cols", id: "news-cols" }, cols.map((c) => h("div", { class: "news-col" },
           h("h3", null, c.title),
           c.items.length
             ? h("ul", { class: "news-list" }, c.items.slice(0, shown).map((n) => newsItem(n, nowMs)))
-            : h("p", { class: "small muted" }, "No recent stories.")))) : null);
+            : h("p", { class: "small muted" }, "No recent stories.")))) : null,
+        total ? h("div", { class: "news-end" },
+          more ? h("button", {
+            type: "button", class: "btn small", "aria-expanded": ui.newsAll ? "true" : "false", "aria-controls": "news-cols",
+            onclick: () => { ui.newsAll = !ui.newsAll; draw(); },
+          }, ui.newsAll ? "Show fewer stories" : "Show more stories") : null,
+          h("p", { class: "small muted" }, `From ${L.andList(N.sources)}, ranked by how widely each story is covered and how closely it links to the syllabus.`)) : null);
     };
     draw();
     return section;
@@ -1188,14 +1194,13 @@
     const also = n.also || [];
     return h("li", { class: "news-item" },
       h("a", { class: "news-link", href: n.url, target: "_blank", rel: "noopener" }, n.title, h("span", { class: "sr-only" }, " (opens in a new tab)")),
-      h("div", { class: "news-foot" },
-        meta("news-meta", n.outlet, L.timeAgo(n.published, nowMs),
-          also.length ? h("span", null, "Also in ", also.flatMap((a, i) => [
-            i ? (i === also.length - 1 ? " and " : ", ") : "",
-            h("a", { href: a.url, target: "_blank", rel: "noopener" }, a.outlet)])) : null),
-        dps.map((dp) => h("button", {
-          type: "button", class: "news-dp", onclick: () => openDotpoint(dp.id), "aria-label": `Open dot point: ${dp.short}`,
-        }, h("span", null, mark(status(dp.id)), dp.short)))));
+      meta("news-meta", n.outlet, L.timeAgo(n.published, nowMs),
+        also.length ? h("span", null, "Also in ", also.flatMap((a, i) => [
+          i ? (i === also.length - 1 ? " and " : ", ") : "",
+          h("a", { href: a.url, target: "_blank", rel: "noopener" }, a.outlet)])) : null),
+      dps.length ? h("div", { class: "news-dps" }, dps.map((dp) => h("button", {
+        type: "button", class: "news-dp", onclick: () => openDotpoint(dp.id), "aria-label": `Open dot point: ${dp.short}`,
+      }, mark(status(dp.id)), h("span", null, dp.short)))) : null);
   }
 
   // The figures the RBA updates every business day, with the change on the previous business day.

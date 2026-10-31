@@ -379,22 +379,66 @@ h1, h2, .ev, .fa, .dp { scroll-margin-top: 84px; }
 
 /* ---------- in the news ---------- */
 .news-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
-.news-item { display: grid; padding: 8px 0 4px; border-bottom: 1px solid var(--rule); }
+.news-item { display: grid; gap: 2px; padding: 12px 0 8px; border-bottom: 1px solid var(--rule); }
 .news-link {
   display: flex; align-items: center; min-height: 44px; color: var(--ink); text-decoration: none;
   font-weight: 600; line-height: 1.35; text-wrap: pretty;
 }
 .news-link:hover { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
-.news-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 0 14px; min-height: 44px; font-size: var(--fs-sm); color: var(--muted); }
-.news-meta { display: contents; }
+.news-meta { display: flex; flex-wrap: wrap; gap: 0 14px; font-size: var(--fs-sm); color: var(--muted); }
 .news-meta a { color: inherit; }
+/* the dot points a story links to: plain links on their own line, each with its confidence dot */
+.news-dps { display: flex; flex-wrap: wrap; gap: 0 20px; }
 /* the dot points a story links to: a light pill inside a full 44px tap area */
-.news-dp { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; cursor: pointer; color: var(--ink); font: inherit; font-weight: 600; }
-.news-dp > span { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 6px; border-radius: 999px; background: var(--soft); transition: background-color 0.15s ease; }
-.news-dp:hover > span { background: var(--hl-soft); }
-.news-dp:focus-visible { outline: none; }
-.news-dp:focus-visible > span { outline: 3px solid var(--ink); outline-offset: 2px; }
-.news-col h3 { margin: 0 0 8px; }
+.news-dp {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0; border: 0; background: none;
+  cursor: pointer; color: var(--ink); font: inherit; font-size: var(--fs-sm); font-weight: 600; text-align: left;
+}
+.news-dp:hover > span { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; text-decoration-color: var(--hl); }
+.news-dp .mark { width: 12px; height: 12px; }
+.news-col h3 { margin: 0 0 10px; }
+.news-cols { row-gap: 40px; }
+.news-end { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; }
+.news-end p { margin: 0; max-width: 62ch; }
+
+/* ---------- home: newest examples, led by the figure you'd quote ---------- */
+.ev-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: clamp(20px, 3vw, 48px); }
+.ev-grid li { border-top: 1px solid var(--rule); }
+.ev-grid button {
+  width: calc(100% + 24px); height: 100%; display: grid; align-content: start; gap: 4px; text-align: left;
+  padding: 16px 12px 20px; margin: 0 -12px;
+  background: none; border: 0; border-radius: var(--r-sm); cursor: pointer; color: var(--ink);
+}
+.ev-grid button:hover { background: var(--soft); }
+.ev-grid button:hover .ev-title { text-decoration: underline; text-underline-offset: 3px; }
+.ev-fig { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-lg); line-height: 1.2; letter-spacing: -0.015em; font-variant-numeric: tabular-nums; }
+.ev-title { font-weight: 600; line-height: 1.4; text-wrap: pretty; }
+@media (max-width: 1000px) { .ev-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .ev-grid { grid-template-columns: minmax(0, 1fr); } .ev-grid button { padding-block: 14px 16px; } }
+
+/* ---------- home: your study, on a band of its own ---------- */
+#view-today { gap: clamp(44px, 5vw, 72px); padding-bottom: 0; }
+.study-band {
+  display: grid; gap: clamp(28px, 3vw, 40px); background: var(--soft);
+  margin-inline: calc(-1 * var(--gutter)) calc(-1 * var(--gutter-r));
+  padding: clamp(36px, 4.5vw, 64px) var(--gutter-r) clamp(44px, 5vw, 72px) var(--gutter);
+}
+.study-band > h2 { font-size: var(--fs-xl); letter-spacing: -0.025em; }
+.study-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.study-band .panel { border-color: transparent; }
+.study-actions .revise { flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 18px; }
+@media (max-width: 760px) { .study-actions { grid-template-columns: minmax(0, 1fr); } }
+.fa-tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1000px) { .fa-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .fa-tiles { grid-template-columns: minmax(0, 1fr); } }
+.fa-tiles button {
+  width: 100%; height: 100%; display: grid; align-content: start; gap: 6px; text-align: left; cursor: pointer;
+  padding: 16px 18px 18px; background: var(--surface); color: var(--ink); border: 1px solid transparent; border-radius: var(--r);
+}
+.fa-tiles button:hover { border-color: var(--rule-strong); }
+.fa-tiles button:hover .dir-name { text-decoration: underline; text-underline-offset: 3px; }
+.fa-tile-top { display: flex; justify-content: space-between; gap: 12px; font-size: var(--fs-sm); color: var(--muted); }
+.fa-tiles .dir-marks { padding-top: 4px; }
 
 /* ---------- settings ---------- */
 .icon-btn {
@@ -600,22 +644,8 @@ kbd { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 600; bor
 .result-group h3 { font-size: var(--fs-md); }
 .revise { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
 .revise > div { display: grid; gap: 2px; }
-.directory { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--rule); }
-.directory li { border-bottom: 1px solid var(--rule); }
-.directory button {
-  width: 100%; text-align: left; background: none; border: 0; padding: 12px 4px; cursor: pointer;
-  display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) auto; grid-template-areas: "year name count" "year marks marks"; gap: 4px 12px; align-items: baseline;
-}
-.directory button:hover { background: var(--soft); }
-.directory button:hover .dir-name { text-decoration: underline; text-underline-offset: 3px; }
-.directory button:focus-visible { outline-offset: -3px; }
-.dir-year { grid-area: year; font-size: var(--fs-sm); color: var(--muted); }
-.dir-name { grid-area: name; font-weight: 600; }
-.dir-marks { grid-area: marks; display: flex; flex-wrap: wrap; gap: 5px; padding-top: 2px; }
-.directory .dp-counts { grid-area: count; margin: 0; white-space: nowrap; }
-@media (max-width: 420px) {
-  .directory button { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "year count" "name name" "marks marks"; }
-}
+.dir-name { font-weight: 600; }
+.dir-marks { display: flex; flex-wrap: wrap; gap: 5px; }
 
 /* ---------- filters ---------- */
 .field {
