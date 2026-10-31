@@ -396,6 +396,63 @@ h1, h2, .ev, .fa, .dp { scroll-margin-top: 84px; }
 .news-dp:focus-visible > span { outline: 3px solid var(--ink); outline-offset: 2px; }
 .news-col h3 { margin: 0 0 8px; }
 
+/* ---------- settings ---------- */
+.icon-btn {
+  display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0;
+  border: 0; border-radius: var(--r-sm); background: none; color: var(--muted); cursor: pointer;
+}
+.icon-btn:hover, .icon-btn[data-open] { color: var(--ink); background: var(--soft); }
+.icon-btn svg { width: 22px; height: 22px; overflow: visible; }
+/* the three slider knobs are dots; they slide to new places while the panel is open */
+.settings-btn .knob { transition: transform 0.38s cubic-bezier(.3, 1.5, .5, 1); }
+.settings-btn[data-open] .k1 { transform: translateX(-7px); }
+.settings-btn[data-open] .k2 { transform: translateX(8px); }
+.settings-btn[data-open] .k3 { transform: translateX(-6px); }
+
+/* desktop: a small card that unfolds from the button; phones: a sheet that rises from the bottom */
+dialog.sheet {
+  position: fixed; inset: auto; margin: 0; width: min(360px, calc(100vw - 24px)); max-width: none;
+  max-height: calc(100dvh - 96px); overflow: auto; overscroll-behavior: contain; transform-origin: top right;
+}
+dialog.sheet::backdrop { background: rgba(18, 24, 21, 0.24); }
+.sheet-inner { display: grid; padding: 6px 20px 20px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; margin-right: -12px; min-height: 52px; }
+.sheet-head h2 { font-size: var(--fs-lg); }
+.set-group { display: grid; gap: 10px; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--rule); }
+.sheet-head + .set-group { margin-top: 4px; }
+.set-group h3 { margin: 0; font-size: var(--fs-md); }
+.set-group p { margin: 0; }
+.set-group .seg { display: flex; }
+.set-group .seg button { flex: 1 1 0; justify-content: center; min-height: 44px; padding-inline: 8px; }
+.set-counts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin: 4px 0; }
+.set-count { display: flex; flex-direction: column-reverse; }
+.set-count dd { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--fs-lg); line-height: 1.15; font-variant-numeric: tabular-nums; }
+.set-count dt { font-size: var(--fs-sm); color: var(--muted); }
+
+/* hold to reset: a red bar sweeps across while it's held down, turning the words over as it passes */
+.hold-btn {
+  position: relative; overflow: hidden; display: grid; place-items: center; width: 100%; min-height: 48px; margin-top: 4px;
+  border: 1px solid var(--bad); border-radius: var(--r-sm); background: var(--surface); color: var(--bad);
+  font: inherit; font-weight: 600; cursor: pointer;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none;
+}
+.hold-btn:hover { background: var(--bad-soft); }
+.hold-fill {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  background: var(--bad); color: var(--paper); clip-path: inset(0 100% 0 0); pointer-events: none;
+}
+.hold-btn[disabled] { border-color: var(--rule-strong); color: var(--muted); background: var(--surface); cursor: default; }
+#reset-status:empty { display: none; }
+#reset-status { font-weight: 600; }
+
+@media (max-width: 760px) {
+  .settings-btn { margin-left: auto; }
+  dialog.sheet {
+    inset: auto 0 0 0; width: 100%; max-height: 88dvh; transform-origin: bottom center;
+    border-radius: 20px 20px 0 0; border-width: 1px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
 /* ---------- stats detail ---------- */
 .detail-head { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; align-items: end; }
 .detail-head > div { display: grid; gap: 4px; }
@@ -701,6 +758,8 @@ textarea.field { min-height: 100px; resize: vertical; }
 }
 </style>
 
+<script>try { var t = localStorage.getItem("dotpoint.theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
+
 <a class="skip" href="#main">Skip to content</a>
 
 <header class="topbar">
@@ -721,6 +780,7 @@ textarea.field { min-height: 100px; resize: vertical; }
       <button type="button" class="tab" data-nav="essay">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-4-4L4 16z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="2" fill="none"/></svg>Essays</button>
     </nav>
+    <button type="button" class="icon-btn settings-btn" id="settings-open" aria-haspopup="dialog" aria-controls="settings-dialog" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><circle class="knob k1" cx="15" cy="6" r="2.8" fill="currentColor"/><circle class="knob k2" cx="8" cy="12" r="2.8" fill="currentColor"/><circle class="knob k3" cx="14" cy="18" r="2.8" fill="currentColor"/></svg></button>
   </div>
 </header>
 
@@ -768,6 +828,31 @@ textarea.field { min-height: 100px; resize: vertical; }
       <button type="button" class="btn" id="report-cancel">Cancel</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="settings-dialog" class="sheet" aria-labelledby="settings-title">
+  <div class="sheet-inner">
+    <div class="sheet-head">
+      <h2 id="settings-title">Settings</h2>
+      <button type="button" class="icon-btn" id="settings-close" aria-label="Close settings"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button>
+    </div>
+    <section class="set-group" aria-labelledby="set-theme-h">
+      <h3 id="set-theme-h">Theme</h3>
+      <div class="seg" id="theme-seg" role="group" aria-labelledby="set-theme-h">
+        <button type="button" data-choice="system" aria-pressed="true">Match device</button>
+        <button type="button" data-choice="light" aria-pressed="false">Light</button>
+        <button type="button" data-choice="dark" aria-pressed="false">Dark</button>
+      </div>
+    </section>
+    <section class="set-group" aria-labelledby="set-progress-h">
+      <h3 id="set-progress-h">Your progress</h3>
+      <p class="small muted" id="set-where">Saved in this browser only.</p>
+      <dl class="set-counts" id="set-counts"></dl>
+      <button type="button" class="hold-btn" id="reset-hold" aria-describedby="reset-hint"><span class="hold-label">Hold to reset all progress</span><span class="hold-fill" aria-hidden="true"><span class="hold-label">Hold to reset all progress</span></span></button>
+      <p class="small" id="reset-status" role="status"></p>
+      <p class="small muted" id="reset-hint">Clears your dot point ratings, flashcards, study days, the examples you've opened and your essays. Your theme stays. This can't be undone.</p>
+    </section>
+  </div>
 </dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>

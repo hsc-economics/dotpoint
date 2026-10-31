@@ -352,6 +352,207 @@
     el.textContent = state === "synced" ? "Progress saved to your account" : "Progress is saved in this browser";
   }
 
+  // ---------- settings: theme, and resetting progress ----------
+
+  const THEME_KEY = "dotpoint.theme";
+
+  function themeChoice() {
+    try {
+      const t = localStorage.getItem(THEME_KEY);
+      return t === "light" || t === "dark" ? t : "system";
+    } catch (e) {
+      return "system";
+    }
+  }
+
+  function applyTheme(t) {
+    if (t === "system") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = t;
+  }
+
+  // The new colours cross-fade where the browser can, rather than snapping.
+  function setTheme(t) {
+    try {
+      if (t === "system") localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, t);
+    } catch (e) { /* storage blocked: this visit only */ }
+    const swap = () => { applyTheme(t); renderSettings(); };
+    if (typeof document.startViewTransition === "function" && !reducedMotion()) document.startViewTransition(swap);
+    else swap();
+  }
+
+  const HOLD_LABEL = "Hold to reset all progress";
+  const COUNT_LABELS = [["dots", "dot point rated", "dot points rated"], ["cards", "flashcard practised", "flashcards practised"],
+    ["days", "study day", "study days"], ["essays", "essay marked", "essays marked"]];
+  let resetJustDone = false;
+
+  function holdLabel(text) {
+    for (const el of $("reset-hold").querySelectorAll(".hold-label")) el.textContent = text;
+  }
+
+  function renderSettings() {
+    const choice = themeChoice();
+    for (const b of $("theme-seg").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.choice === choice));
+    const c = L.progressCounts(progress, Essays.list.length);
+    $("set-counts").replaceChildren(...COUNT_LABELS.map(([k, one, many]) => h("div", { class: "set-count" },
+      h("dt", null, c[k] === 1 ? one : many), h("dd", { "data-from": c[k] }, String(c[k])))));
+    $("set-where").textContent = Sync.ref
+      ? "Saved to your account and in this browser. Resetting clears both."
+      : "Saved in this browser only. Other browsers and devices keep their own.";
+    const any = Object.values(c).some((n) => n > 0) || !!(ui.essay && ui.essay.draft.text.trim());
+    const btn = $("reset-hold");
+    if (resetJustDone) return;
+    btn.disabled = !any;
+    holdLabel(any ? HOLD_LABEL : "Nothing to reset yet");
+  }
+
+  const narrowScreen = () => window.matchMedia("(max-width: 760px)").matches;
+  let sheetAnims = [];
+
+  function openSettings() {
+    const d = $("settings-dialog"), btn = $("settings-open");
+    if (d.open) return;
+    renderSettings();
+    $("reset-status").textContent = "";
+    const narrow = narrowScreen();
+    if (narrow) {
+      d.style.top = d.style.right = "";
+    } else {
+      const r = btn.getBoundingClientRect();
+      d.style.top = `${Math.round(r.bottom + 8)}px`;
+      d.style.right = `${Math.max(12, Math.round(window.innerWidth - r.right))}px`;
+    }
+    sheetAnims.forEach((a) => a.cancel());
+    if (typeof d.showModal === "function") d.showModal(); else d.setAttribute("open", "");
+    btn.dataset.open = "";
+    motion(d, narrow
+      ? [{ transform: "translateY(100%)" }, { transform: "none" }]
+      : [{ opacity: 0, transform: "translateY(-8px) scale(0.95)" }, { opacity: 1, transform: "none" }],
+    { duration: narrow ? 320 : 220, easing: "cubic-bezier(.2,.9,.25,1)" });
+    try { motion(d, [{ opacity: 0 }, { opacity: 1 }], { duration: 220, pseudoElement: "::backdrop" }); } catch (e) { /* no backdrop animation */ }
+  }
+
+  function closeSettings() {
+    const d = $("settings-dialog");
+    if (!d.open || sheetAnims.length) return;
+    const narrow = narrowScreen();
+    const opts = { duration: narrow ? 220 : 150, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" };
+    const panel = motion(d, narrow
+      ? [{ transform: "none" }, { transform: "translateY(100%)" }]
+      : [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(-6px) scale(0.97)" }], opts);
+    let shade = null;
+    try { shade = motion(d, [{ opacity: 1 }, { opacity: 0 }], { ...opts, pseudoElement: "::backdrop" }); } catch (e) { /* no backdrop animation */ }
+    sheetAnims = [panel, shade].filter(Boolean);
+    let closed = false;
+    const done = () => {
+      if (closed) return;
+      closed = true;
+      if (typeof d.close === "function") d.close(); else d.removeAttribute("open");
+      sheetAnims.forEach((a) => a.cancel());
+      sheetAnims = [];
+    };
+    if (panel) {
+      panel.onfinish = done;
+      setTimeout(done, opts.duration + 200); // never leave it half closed, even if animations are paused
+    } else done();
+  }
+
+  // Resetting needs a deliberate press and hold (mouse, finger, or Enter or Space held down), so a stray
+  // tap can't wipe anything. Screen readers activate buttons without a hold, so for them a second press
+  // within a few seconds confirms instead.
+  function setupResetHold() {
+    const btn = $("reset-hold"), fill = btn.querySelector(".hold-fill"), status = $("reset-status");
+    const EMPTY = "inset(0 100% 0 0)";
+    let anim = null, armed = false, armTimer = 0;
+    const disarm = () => {
+      clearTimeout(armTimer);
+      if (armed) { armed = false; renderSettings(); }
+    };
+    const start = () => {
+      if (btn.disabled || anim || resetJustDone) return;
+      disarm();
+      status.textContent = "";
+      anim = fill.animate([{ clipPath: EMPTY }, { clipPath: "inset(0 0 0 0)" }],
+        { duration: 1300, easing: "cubic-bezier(.4,0,.6,1)", fill: "forwards" });
+      anim.onfinish = () => {
+        const full = anim;
+        anim = null;
+        resetAll();
+        setTimeout(() => {
+          const fade = fill.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: "ease-out" });
+          fade.onfinish = () => { full.cancel(); resetJustDone = false; renderSettings(); };
+        }, 900);
+      };
+    };
+    const stop = () => {
+      if (!anim) return;
+      const at = getComputedStyle(fill).clipPath;
+      anim.cancel();
+      anim = null;
+      fill.animate([{ clipPath: at }, { clipPath: EMPTY }], { duration: 240, easing: "ease-out" });
+      status.textContent = "Keep holding until the bar fills to reset.";
+    };
+    btn.addEventListener("pointerdown", (e) => { if (e.button === 0) start(); });
+    for (const ev of ["pointerup", "pointerleave", "pointercancel", "blur"]) btn.addEventListener(ev, stop);
+    btn.addEventListener("contextmenu", (e) => e.preventDefault());
+    btn.addEventListener("keydown", (e) => {
+      if (e.key !== " " && e.key !== "Enter") return;
+      e.preventDefault();
+      if (!e.repeat) start();
+    });
+    btn.addEventListener("keyup", (e) => {
+      if (e.key !== " " && e.key !== "Enter") return;
+      e.preventDefault();
+      stop();
+    });
+    btn.addEventListener("click", (e) => {
+      if (e.detail !== 0 || btn.disabled || resetJustDone) return; // a mouse or finger holds instead
+      if (armed) {
+        disarm();
+        resetAll().then(() => setTimeout(() => { resetJustDone = false; renderSettings(); }, 1200));
+        return;
+      }
+      armed = true;
+      holdLabel("Press again to reset");
+      status.textContent = "Press the button again to reset all progress.";
+      armTimer = setTimeout(disarm, 6000);
+    });
+    $("settings-dialog").addEventListener("close", () => { stop(); disarm(); status.textContent = ""; });
+  }
+
+  // Wipe everything the site has saved for this person: here, and in their account copy if they have one.
+  async function resetAll() {
+    resetJustDone = true;
+    holdLabel("All progress reset");
+    $("reset-hold").disabled = true;
+    $("reset-status").textContent = "";
+    progress = L.emptyProgress();
+    progress.updatedAt = Date.now(); // newer than any other copy, so the account copy and other devices take the reset too
+    saveLocal();
+    Sync.schedule();
+    ui.drill = null;
+    ui.openEv = {};
+    clearTimeout(draftTimer);
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* storage blocked */ }
+    Object.assign(ui.essay, { mode: "write", draft: emptyDraft(), open: null, busy: null, msg: "" });
+    await Essays.clear();
+    renderAll();
+    countDown();
+    toast("All progress reset");
+  }
+
+  // The saved counts tick down to zero, so it's clear what was cleared.
+  function countDown() {
+    const dds = [...$("set-counts").querySelectorAll("dd")];
+    if (reducedMotion() || !dds.some((dd) => Number(dd.dataset.from) > 0)) return renderSettings();
+    const t0 = performance.now(), ms = 600;
+    const tick = (now) => {
+      const k = Math.min(1, (now - t0) / ms), left = Math.pow(1 - k, 3);
+      for (const dd of dds) dd.textContent = String(Math.round(Number(dd.dataset.from) * left));
+      if (k < 1) requestAnimationFrame(tick); else renderSettings();
+    };
+    requestAnimationFrame(tick);
+  }
+
   // ---------- problem reports ----------
 
   let reportTarget = "";
@@ -1611,7 +1812,7 @@
   // focused button, so it can't grade the card and move on (after the first flip, focus sits on
   // "Knew it"). Enter still presses the focused button.
   const drillKeysOn = (e) => ui.view === "drills" && ui.drill && ui.drill.i < ui.drill.queue.length
-    && !(e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) && !$("report-dialog").open
+    && !(e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) && !document.querySelector("dialog[open]")
     && !(e.altKey || e.ctrlKey || e.metaKey);
   document.addEventListener("keydown", (e) => {
     if (!drillKeysOn(e)) return;
@@ -1686,6 +1887,18 @@
         try { await col.doc(rec.id).set(rec); return; } catch (e) { this.where = "browser"; }
       }
       try { localStorage.setItem(LOCAL_ESSAYS, JSON.stringify(this.list.slice(0, 5))); } catch (e) { /* storage blocked: keep in memory */ }
+    },
+
+    async clear() {
+      const col = this.col();
+      if (col && this.where === "account") {
+        try {
+          const snap = await col.where("kind", "==", "essay").get();
+          await Promise.all(snap.docs.map((d) => col.doc(d.id).delete()));
+        } catch (e) { /* the account copy stays; this browser is still cleared */ }
+      }
+      this.list = [];
+      try { localStorage.removeItem(LOCAL_ESSAYS); } catch (e) { /* storage blocked */ }
     },
   };
 
@@ -2006,6 +2219,15 @@
     });
     if (SUGGEST_URL) { $("suggest-footer").href = SUGGEST_URL; $("suggest-footer").hidden = false; }
     $("report-cancel").addEventListener("click", closeReport);
+    applyTheme(themeChoice());
+    $("settings-open").addEventListener("click", openSettings);
+    $("settings-close").addEventListener("click", closeSettings);
+    const sheet = $("settings-dialog");
+    sheet.addEventListener("cancel", (e) => { e.preventDefault(); closeSettings(); });
+    sheet.addEventListener("click", (e) => { if (e.target === sheet) closeSettings(); }); // a click on the shaded page
+    sheet.addEventListener("close", () => { delete $("settings-open").dataset.open; $("settings-open").focus(); });
+    for (const b of $("theme-seg").querySelectorAll("button")) b.addEventListener("click", () => setTheme(b.dataset.choice));
+    setupResetHold();
     $("report-form").addEventListener("submit", (e) => { e.preventDefault(); sendReport(); });
 
     const latestPub = ST.indicators.map((i) => i.points[i.points.length - 1][0]).sort().pop();

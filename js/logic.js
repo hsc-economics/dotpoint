@@ -312,6 +312,13 @@
     return !!x && typeof x === "object" && !Array.isArray(x);
   }
 
+  // What a reset would clear, counted for the settings panel.
+  function progressCounts(p, essays) {
+    const n = normaliseProgress(p);
+    const size = (o) => Object.keys(o).length;
+    return { dots: size(n.dotStatus), cards: size(n.cards), days: size(n.days), examples: size(n.seenEvidence), essays: essays || 0 };
+  }
+
   // Keep whichever copy was changed most recently (this browser or the account copy).
   function mergeProgress(local, remote) {
     const a = normaliseProgress(local), b = normaliseProgress(remote);
@@ -669,7 +676,7 @@
     latest, yearChange, fmtValue, fmtDelta, periodOf, citationSentence, sentenceValue, sourceShort, isDaily,
     statCards, evidenceCards, termCards, buildDeck,
     slug, dotpointIndex, dotpointStatus, tokens, searchEvidence,
-    emptyProgress, normaliseProgress, mergeProgress, suggestions, cleanReport,
+    emptyProgress, normaliseProgress, progressCounts, mergeProgress, suggestions, cleanReport,
     MASTERY, skillLevel, skillTree, branchRows, nextSkill, streak, points, relatedIndicators, relatedExamples,
     sequence, searchAll, timeAgo, recentNews, andList,
   };

@@ -519,6 +519,26 @@ test("news: lists read naturally", () => {
   eq(L.andList(["A", "B", "C"]), "A, B and C");
 });
 
+// ---------- settings ----------
+test("settings: counts what a reset would clear", () => {
+  const p = { version: 1, updatedAt: 5, dotStatus: { a: "confident", b: "unsure" }, cards: { c1: {} }, seenEvidence: { e1: 1, e2: 1, e3: 1 }, days: { "2026-10-30": 4 } };
+  eq(L.progressCounts(p, 2), { dots: 2, cards: 1, days: 1, examples: 3, essays: 2 });
+  eq(L.progressCounts(null), { dots: 0, cards: 0, days: 0, examples: 0, essays: 0 });
+});
+test("settings: a reset starts from empty progress", () => {
+  const e = L.emptyProgress();
+  eq(L.progressCounts(e), { dots: 0, cards: 0, days: 0, examples: 0, essays: 0 });
+  ok(L.mergeProgress({ ...e, updatedAt: 20 }, { version: 1, updatedAt: 10, dotStatus: { a: "confident" } }).dotStatus.a === undefined, "a newer reset beats an older account copy");
+});
+test("settings: the panel has a theme choice and a hold-to-reset button", () => {
+  ok(html.includes('id="settings-open"') && html.includes('aria-label="Settings"'), "settings button");
+  ok(html.includes('id="settings-dialog"') && html.includes('id="reset-hold"'), "panel and reset button");
+  for (const c of ["system", "light", "dark"]) ok(html.includes(`data-choice="${c}"`), c);
+  const app = read("js/app.js");
+  for (const k of ["dotpoint.progress.v1", "dotpoint.essayDraft.v1", "dotpoint.essays.v1"]) ok(app.includes(k), k);
+  ok(/async function resetAll\(\)[\s\S]*?localStorage.removeItem\(DRAFT_KEY\)[\s\S]*?Essays.clear\(\)/.test(app), "reset clears the draft and essays");
+});
+
 test("page: has a short title", () => { const m = /<title>([^<]+)<\/title>/.exec(html); ok(m && m[1].split(" ").length <= 4, m && m[1]); });
 test("page: app.js never uses innerHTML", () => ok(!/innerHTML/.test(app)));
 
