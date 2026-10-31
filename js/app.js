@@ -1021,16 +1021,16 @@
             h("option", { value: "fresh" }, "Under 6 months"),
             h("option", { value: "ageing" }, "6–18 months"),
             h("option", { value: "old" }, "Over 18 months"))),
+        h("label", { for: "ev-sort" }, "Sort",
+          h("select", { id: "ev-sort", class: "field" },
+            h("option", { value: "new" }, "Newest first"),
+            h("option", { value: "old" }, "Oldest first"),
+            h("option", { value: "rel" }, "Best match"))),
         h("button", { type: "button", class: "btn ghost small", id: "ev-clear" }, "Clear filters"),
         suggestLink("Know a report or article that belongs here?"));
       const main = h("div", { class: "ev-main" },
-        h("div", { class: "result-line" },
-          h("span", { id: "ev-count", "aria-live": "polite" }),
-          h("label", { class: "sort", for: "ev-sort" }, "Sort ",
-            h("select", { id: "ev-sort", class: "field compact" },
-              h("option", { value: "new" }, "Newest first"),
-              h("option", { value: "old" }, "Oldest first"),
-              h("option", { value: "rel" }, "Best match")))),
+        // the count sits on the same line as the "Search" label, so the first example lines up with the search box
+        h("p", { class: "result-line", id: "ev-count", "aria-live": "polite" }),
         h("ul", { class: "ev-list", id: "ev-list" }));
       root.append(h("div", { class: "ev-layout" }, side, main));
       $("ev-search").addEventListener("input", (e) => { ui.query = e.target.value; renderEvidenceList(); });
@@ -1652,8 +1652,10 @@
     });
     const most = Math.max(1, ...week.map((x) => x.n));
     const num = (n, label, cls) => h("div", { class: "pnum " + cls }, h("b", null, String(n)), h("span", { class: "small muted" }, label));
-    return h("aside", { class: "panel side-panel", "aria-labelledby": "h-progress" },
+    // The heading sits above the panel, level with "Choose a deck", so the panel lines up with the first row of decks
+    return h("aside", { class: "section side-col", "aria-labelledby": "h-progress" },
       h("h2", { id: "h-progress" }, "Your progress"),
+      h("div", { class: "panel side-panel" },
       h("div", { class: "split-bar", role: "img", "aria-label": `${learned} learned, ${learning} in progress, ${fresh} not started, out of ${deck.length}` },
         h("span", { class: "seg-learned", style: `width:${pct(learned, deck.length)}` }),
         h("span", { class: "seg-learning", style: `width:${pct(learning, deck.length)}` })),
@@ -1678,7 +1680,7 @@
         return h("li", null, h("span", { class: "fa-name" }, fa.name),
           h("span", { class: "mini-bar", "aria-hidden": "true" }, h("span", { style: `width:${pct(l, cards.length)}` })),
           h("span", { class: "small muted" }, `${l} of ${cards.length}`));
-      })));
+      }))));
   }
 
   // One dot per card in the session: filled in the colour of your answer as you go.

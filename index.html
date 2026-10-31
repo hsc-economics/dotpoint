@@ -212,7 +212,7 @@ h1, h2, .ev, .fa, .dp { scroll-margin-top: 84px; }
 .btn.ghost:hover { background: var(--soft); border-color: transparent; }
 .btn.small { min-height: 40px; padding: 6px 14px; font-size: var(--fs-sm); }
 .btn.ghost.small { padding-inline: 8px; }
-.section-head .btn.ghost { padding-inline: 0; } /* text sits flush with the column edge, nothing hangs over it */
+.section-head .btn.ghost { padding-inline: 0; border-inline-width: 0; } /* text sits flush with the column edge, nothing hangs over it */
 .section-head .btn.ghost:hover { background: none; text-decoration-thickness: 2px; }
 .btn[disabled] { opacity: 0.45; cursor: not-allowed; }
 .btn[disabled]:hover { border-color: var(--rule-strong); }
@@ -364,11 +364,13 @@ h1, h2, .ev, .fa, .dp { scroll-margin-top: 84px; }
 /* ---------- lists of examples and dot points ---------- */
 .mini-ev { display: grid; list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
 .mini-ev li { border-bottom: 1px solid var(--rule); }
+/* the text lines up with the heading above; the hover shading reaches a little past it on each side */
 .mini-ev button {
-  width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 4px 16px; text-align: left;
-  background: none; border: 0; padding: 12px 4px; cursor: pointer; font-weight: 500;
+  width: calc(100% + 16px); margin-inline: -8px; display: flex; justify-content: space-between; align-items: baseline; gap: 4px 16px; text-align: left;
+  background: none; border: 0; border-radius: var(--r-sm); padding: 12px 8px; cursor: pointer; font-weight: 500;
 }
 .mini-ev button:hover { background: var(--soft); }
+@media (max-width: 600px) { .mini-ev button { width: 100%; margin-inline: 0; padding-inline: 0; } } /* no hover on phones, so no shading to make room for */
 .mini-ev button:focus-visible { outline-offset: -3px; }
 .mini-ev .mono { white-space: nowrap; font-family: var(--font-display); font-weight: 700; text-align: right; }
 .mini-ev { container-type: inline-size; }
@@ -414,7 +416,7 @@ h1, h2, .ev, .fa, .dp { scroll-margin-top: 84px; }
 .ev-fig { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-lg); line-height: 1.2; letter-spacing: -0.015em; font-variant-numeric: tabular-nums; }
 .ev-title { font-weight: 600; line-height: 1.4; text-wrap: pretty; }
 @media (max-width: 1000px) { .ev-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 600px) { .ev-grid { grid-template-columns: minmax(0, 1fr); } .ev-grid button { padding-block: 14px 16px; } }
+@media (max-width: 600px) { .ev-grid { grid-template-columns: minmax(0, 1fr); } .ev-grid button { padding: 14px 0 16px; margin: 0; width: 100%; } }
 
 /* ---------- home: your study, on a band of its own ---------- */
 #view-today { gap: clamp(44px, 5vw, 72px); padding-bottom: 0; }
@@ -433,12 +435,13 @@ h1, h2, .ev, .fa, .dp { scroll-margin-top: 84px; }
 @media (max-width: 600px) { .fa-tiles { grid-template-columns: minmax(0, 1fr); } }
 .fa-tiles button {
   width: 100%; height: 100%; display: grid; align-content: start; gap: 6px; text-align: left; cursor: pointer;
-  padding: 16px 18px 18px; background: var(--surface); color: var(--ink); border: 1px solid transparent; border-radius: var(--r);
+  padding: 18px 22px 20px; background: var(--surface); color: var(--ink); border: 1px solid transparent; border-radius: var(--r); /* same inset as the panels above */
 }
 .fa-tiles button:hover { border-color: var(--rule-strong); }
 .fa-tiles button:hover .dir-name { text-decoration: underline; text-underline-offset: 3px; }
 .fa-tile-top { display: flex; justify-content: space-between; gap: 12px; font-size: var(--fs-sm); color: var(--muted); }
 .fa-tiles .dir-marks { padding-top: 4px; }
+@media (max-width: 560px) { .fa-tiles button { padding: 16px; } } /* the panels' phone inset */
 
 /* ---------- settings ---------- */
 .icon-btn {
@@ -550,6 +553,8 @@ td.num, th.num { text-align: right; }
 @media (min-width: 1000px) {
   .drills-layout, .session-layout { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); }
   .side-panel { position: sticky; top: 84px; }
+  .side-col { position: sticky; top: 84px; }
+  .side-col .side-panel { position: static; }
 }
 .side-panel { display: grid; gap: 14px; }
 .side-panel .sublabel { margin-top: 6px; }
@@ -657,9 +662,8 @@ kbd { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 600; bor
 .filter-side { position: sticky; top: 84px; display: grid; gap: 14px; }
 .filter-side label { display: grid; gap: 6px; font-size: var(--fs-sm); font-weight: 600; }
 .filter-side .btn { justify-self: start; }
-.ev-main { display: grid; gap: 12px; min-width: 0; }
-.sort { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-sm); color: var(--muted); }
-.field.compact { min-height: 40px; padding: 4px 10px; width: auto; font-size: var(--fs-sm); }
+.ev-main { display: grid; gap: 6px; min-width: 0; } /* same gap as a filter label and its field */
+.ev-main .result-line { margin: 0; }
 .ev-tags { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 @media (max-width: 860px) {
   .ev-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
@@ -689,6 +693,8 @@ kbd { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 600; bor
 .marking p:first-of-type { max-width: 70ch; }
 .essay-history { display: grid; gap: 12px; position: sticky; top: 84px; }
 .essay-history h2 { font-size: var(--fs-md); }
+/* beside the form, "Past feedback" lines up with "Question" inside the form's box (its padding plus border) */
+@media (min-width: 1001px) { .essay-layout > .essay-history { padding-top: 23px; } }
 .essay-history .mini-ev button { font-size: var(--fs-sm); }
 .essay-result { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px); gap: clamp(32px, 4vw, 72px); align-items: start; }
 .essay-main, .essay-side { gap: 28px; }
