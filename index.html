@@ -653,9 +653,18 @@ legend { font-weight: 600; margin-bottom: 6px; }
 .radio input { accent-color: var(--ink); width: 18px; height: 18px; margin: 0; }
 textarea.field { min-height: 100px; resize: vertical; }
 .mark { transform-origin: center; }
-/* the opening moment: a big dot on a paper veil that flies into the logo */
-.intro-veil { position: fixed; inset: 0; z-index: 90; background: var(--paper); perspective: 1200px; cursor: pointer; }
-.intro-mark { position: absolute; left: 50%; top: 50%; overflow: visible; }
+/* the opening moment: a supply and demand diagram, its equilibrium circled, flying into the logo */
+.intro { position: fixed; inset: 0; z-index: 90; cursor: pointer; }
+.intro-veil { position: absolute; inset: 0; background: var(--paper); }
+.intro-graph { position: absolute; left: 50%; top: 50%; overflow: visible; fill: none; stroke: var(--ink); stroke-linecap: round; stroke-linejoin: round; }
+.intro-graph .ig-draw { stroke-dasharray: 1; }
+.intro-graph .ig-axis { stroke: var(--muted); stroke-width: 0.7; }
+.intro-graph .ig-curve { stroke-width: 1.1; }
+.intro-graph .ig-guide { stroke: var(--muted); stroke-width: 0.5; stroke-dasharray: 1.4 1.6; }
+.intro-graph text { stroke: none; fill: var(--muted); font-family: var(--font-display); font-weight: 700; font-size: 5.5px; dominant-baseline: middle; }
+.intro-mark { position: absolute; overflow: visible; transform-origin: center; }
+.intro-mark .brand-line { stroke-dasharray: 1; }
+.intro-mark .brand-dot { transform-box: fill-box; transform-origin: center; }
 /* easter-egg dots float above everything and never catch clicks */
 .fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 80; overflow: hidden; }
 .fx-dot { position: absolute; border-radius: 50%; border: 1.5px solid var(--ink); }
