@@ -137,6 +137,33 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
 .honey{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .sent{border:1px solid var(--rule);border-radius:12px;padding:24px;background:var(--surface)}.sent h2{margin:0}
 .sent h2:focus{outline:none}[data-fallback]{display:grid;gap:8px}[data-fallback] textarea{min-height:150px;font:14px/1.5 ui-monospace,Menlo,monospace}
+body.wide .wrap{max-width:80rem;min-height:100vh;min-height:100dvh;display:grid;grid-template-rows:auto 1fr auto;padding:0 clamp(16px,4vw,48px)}
+body.wide header{justify-content:space-between;margin-bottom:0}
+.back{font-weight:600;font-size:.9375rem;color:var(--muted);min-height:44px;display:inline-flex;align-items:center}
+body.wide main{padding-block:clamp(28px,6vw,72px)}
+.form-layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(32px,6vw,96px);align-items:start}
+.form-intro{position:sticky;top:32px;display:grid;gap:14px}
+.form-intro h1{font-size:clamp(2.25rem,1.5rem + 2.6vw,3.6rem);line-height:1.04;margin:0}
+.form-intro h2{font-size:1.0625rem;margin:22px 0 0}
+.steps{list-style:none;padding:0;margin:0;display:grid;gap:16px;counter-reset:s}
+.steps li{display:grid;grid-template-columns:34px minmax(0,1fr);gap:14px;align-items:start;counter-increment:s}
+.steps li::before{content:counter(s);width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--hl);color:#18211d;font-weight:700;font-size:.875rem;box-shadow:0 0 0 1.5px var(--ink)}
+.steps b{display:block;line-height:1.35}.steps span{display:block;color:var(--muted);font-size:.9375rem}
+.form-card{background:var(--surface);border:1px solid var(--rule);border-radius:18px;padding:clamp(20px,3.2vw,40px);box-shadow:0 24px 48px -32px rgba(24,33,29,.45);min-width:0}
+.form-card form{margin-top:0}.form-card .sent{margin:0;border:0;padding:0;background:none}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px}
+.choice{border:1px solid var(--rule);border-radius:12px;padding:12px 14px;min-height:52px;background:var(--surface);
+transition:border-color .15s ease,background-color .15s ease,box-shadow .15s ease,transform .12s ease;user-select:none}
+.choice span{display:grid;gap:2px}.choice small{color:var(--muted);font-size:.8125rem;line-height:1.35}
+.choice:hover{border-color:var(--strong)}.choice:active{transform:scale(.98)}
+.choice:has(input:checked){border-color:var(--ink);background:var(--soft);box-shadow:inset 0 0 0 1px var(--ink)}
+.choice:has(input:focus-visible){outline:3px solid var(--hl);outline-offset:2px}
+.send-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}.send-row [data-status]{min-height:0}
+.fallback-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0}.fallback-actions .cta,.fallback-actions .go{margin:0}
+.cta.quiet{background:none;color:var(--ink);text-decoration:underline}
+.go:active:not(:disabled),.cta:active{transform:scale(.97)}.go,.cta{transition:transform .12s ease,opacity .15s ease}
+@media (max-width:860px){.form-layout{grid-template-columns:minmax(0,1fr)}.form-intro{position:static}}
+@media (prefers-reduced-motion:reduce){.choice,.go,.cta{transition:none}.choice:active,.go:active,.cta:active{transform:none}}
 """
 LOGO = ('<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="37" cy="37" r="21" fill="#eedd3a"/>'
         '<path d="M40 8 C24 2 6 13 6.5 30 C7 46 20 52.5 30 51.5 C44 50.5 51.5 40 50.5 27 C49.5 14 38 5.5 24 8.5" '
@@ -144,7 +171,7 @@ LOGO = ('<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="37" cy="37" r="
         '<path d="M23 26 C27 24.5 33 27 39.5 25" fill="none" stroke="#18211d" stroke-width="6.5" stroke-linecap="round"/></svg>')
 
 
-def plain_page(name, title, desc, body, scripts=(), index=True):
+def plain_page(name, title, desc, body, scripts=(), index=True, wide=False):
     doc = (f'<!doctype html><html lang="en-AU"><head><meta charset="utf-8">'
            f'<meta name="viewport" content="width=device-width,initial-scale=1">'
            + ('' if index else '<meta name="robots" content="noindex">') +
@@ -152,8 +179,9 @@ def plain_page(name, title, desc, body, scripts=(), index=True):
            f'<link rel="canonical" href="{SITE}{name}"><link rel="icon" href="icons/favicon.svg" type="image/svg+xml">'
            f'<meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}">'
            f'<meta property="og:url" content="{SITE}{name}"><meta property="og:image" content="{SITE}icons/apple-touch-icon.png">'
-           f"{FONTS}<style>{PLAIN_CSS}</style></head><body><div class=\"wrap\">"
-           f'<header><a href="./">{LOGO}Dotpoint</a></header><main>{body}</main>'
+           f"{FONTS}<style>{PLAIN_CSS}</style></head>" + ('<body class="wide">' if wide else "<body>") + '<div class="wrap">'
+           f'<header><a href="./">{LOGO}Dotpoint</a>'
+           + ('<a class="back" href="./">Back to Dotpoint</a>' if wide else '') + f'</header><main>{body}</main>'
            '<footer class="small muted"><p>Dotpoint is a free, independent study site for NSW HSC Economics and is not '
            'affiliated with NESA. Dot point summaries are in our own words; always check the '
            f'<a href="https://curriculum.nsw.edu.au/learning-areas/hsie/economics-11-12-2025/content">official syllabus</a>.</p>'
@@ -252,16 +280,26 @@ def papers_page(res):
 
 
 FORM_TAIL = ('<div class="honey" aria-hidden="true"><label>Leave this empty <input type="text" name="_honey" tabindex="-1" autocomplete="off"></label></div>'
-             '<p class="small muted">Don\'t include your name or other personal details. Messages go straight to the person who runs Dotpoint.</p>'
-             '<button type="submit" class="go">{button}</button><p data-status role="status" aria-live="polite"></p>'
+             '<div class="send-row"><button type="submit" class="go">{button}</button><p data-status role="status" aria-live="polite"></p></div>'
              '<div data-fallback hidden><textarea readonly aria-label="Your message, to copy"></textarea>'
-             '<p><a class="cta" hidden>Email it instead</a></p></div>')
+             '<p class="fallback-actions"><a class="cta" hidden>Email it instead</a><button type="button" class="go again" data-copy>Copy message</button></p>'
+             '<p class="small muted">Or send it from your own email<span data-to></span>.</p></div>')
 FORM_SCRIPTS = ("data/config.js", "js/contact.js", "js/forms.js")
 
 
 def sent_panel(pid, text):
     return (f'<div class="sent" id="{pid}" hidden><h2 tabindex="-1">Sent. Thank you.</h2><p class="muted">{text}</p>'
-            '<p><button type="button" class="go again" data-again>Send another</button> &nbsp;<a href="./">Back to Dotpoint</a></p></div>')
+            '<p class="fallback-actions"><button type="button" class="go again" data-again>Send another</button><a class="cta quiet" href="./">Back to Dotpoint</a></p></div>')
+
+
+def form_page(name, title, desc, heading, lead, steps, form, sent):
+    items = "".join(f"<li><div><b>{esc(a)}</b><span>{esc(b)}</span></div></li>" for a, b in steps)
+    body = (f'<div class="form-layout"><div class="form-intro"><h1>{heading}</h1><p class="lead">{lead}</p>'
+            f'<h2>What happens next</h2><ol class="steps">{items}</ol>'
+            '<p class="small muted">Please don\'t include your name or other personal details. Messages go straight to the '
+            'person who runs Dotpoint and aren\'t published.</p></div>'
+            f'<div class="form-card">{form}{sent}</div></div>')
+    plain_page(name, title, desc, body, FORM_SCRIPTS, index=False, wide=True)
 
 
 def suggest_page(sy):
@@ -270,13 +308,11 @@ def suggest_page(sy):
         opts.append(f'<optgroup label="Year {fa["year"]}: {esc(fa["name"])}">')
         opts += [f'<option value="{esc(dp["id"])}">{esc(dp.get("short") or dp["text"])}</option>' for dp in fa["dotpoints"]]
         opts.append("</optgroup>")
-    body = ('<h1>Suggest an example or statistic</h1>'
-            '<p class="lead">Found a recent decision, report or figure that would help explain a dot point? Send it in. '
-            'Every suggestion is checked against its source before it goes on the site.</p>'
-            '<form id="suggest-form" data-done="suggest-sent" novalidate>'
-            '<fieldset><legend>What are you suggesting?</legend>'
-            '<label class="choice"><input type="radio" name="kind" value="Example" checked> A real-world example</label>'
-            '<label class="choice"><input type="radio" name="kind" value="Statistic"> A statistic</label></fieldset>'
+    form = ('<form id="suggest-form" data-done="suggest-sent" novalidate>'
+            '<fieldset><legend>What are you suggesting?</legend><div class="choices">'
+            '<label class="choice"><input type="radio" name="kind" value="Example" checked><span><b>A real-world example</b><small>A decision, law, report or event</small></span></label>'
+            '<label class="choice"><input type="radio" name="kind" value="Statistic"><span><b>A statistic</b><small>A figure from the RBA, ABS or similar</small></span></label>'
+            '</div></fieldset>'
             '<label><span class="q">What is it?<span class="hint">For example: RBA keeps the cash rate at 4.85% in November</span></span>'
             '<input type="text" name="title" maxlength="200" required></label>'
             '<label><span class="q">Link to the source<span class="hint">The original page: the RBA, ABS, a government site or a news report</span></span>'
@@ -284,29 +320,36 @@ def suggest_page(sy):
             f'<label><span class="q">Which dot point does it help with?</span><select name="dotpoint">{"".join(opts)}</select></label>'
             '<label><span class="q">How would you use it in an answer? <span class="hint">Optional</span></span>'
             '<textarea name="use" maxlength="800"></textarea></label>'
-            + FORM_TAIL.format(button="Send suggestion") + "</form>"
-            + sent_panel("suggest-sent", "It will be checked against the source and, if it fits, added to Dotpoint."))
-    plain_page("suggest.html", "Suggest an example or statistic | Dotpoint",
-               "Suggest a real-world example or statistic for an HSC Economics dot point.", body, FORM_SCRIPTS, index=False)
+            + FORM_TAIL.format(button="Send suggestion") + "</form>")
+    form_page("suggest.html", "Suggest an example or statistic | Dotpoint",
+              "Suggest a real-world example or statistic for an HSC Economics dot point.",
+              "Suggest an example or statistic",
+              "Found a recent decision, report or figure that would help explain a dot point? Send it in.",
+              [("It arrives by email", "Straight to the person who runs Dotpoint."),
+               ("It's checked against the source", "Every example and figure is read against the original before it goes on."),
+               ("It goes on the site", "If it fits a dot point, it's added for everyone to use.")],
+              form, sent_panel("suggest-sent", "It will be checked against the source and, if it fits, added to Dotpoint."))
 
 
 def report_page():
     reasons = [("A fact is wrong", True), ("It's out of date", False), ("A link is broken", False),
                ("Something isn't working", False), ("Something else", False)]
-    radios = "".join(f'<label class="choice"><input type="radio" name="reason" value="{esc(r)}"{" checked" if c else ""}> {esc(r)}</label>'
+    radios = "".join(f'<label class="choice"><input type="radio" name="reason" value="{esc(r)}"{" checked" if c else ""}><span><b>{esc(r)}</b></span></label>'
                      for r, c in reasons)
-    body = ('<h1>Report a problem</h1>'
-            '<p class="lead">Spotted a wrong figure, an old example, a broken link or something that doesn\'t work? '
-            'Tell us here and it will be fixed.</p>'
-            '<form id="report-page-form" data-done="report-sent" novalidate>'
-            f'<fieldset><legend>What\'s wrong?</legend>{radios}</fieldset>'
+    form = ('<form id="report-page-form" data-done="report-sent" novalidate>'
+            f'<fieldset><legend>What\'s wrong?</legend><div class="choices">{radios}</div></fieldset>'
             '<label><span class="q">Where is it? <span class="hint">Optional. For example: Stats page, cash rate</span></span>'
             '<input type="text" name="where" maxlength="200"></label>'
             '<label><span class="q">What happened?<span class="hint">What you expected, and what you saw instead</span></span>'
             '<textarea name="details" maxlength="1200" required></textarea></label>'
-            + FORM_TAIL.format(button="Send report") + "</form>"
-            + sent_panel("report-sent", "Thanks for helping keep Dotpoint accurate."))
-    plain_page("report.html", "Report a problem | Dotpoint", "Report a problem with Dotpoint.", body, FORM_SCRIPTS, index=False)
+            + FORM_TAIL.format(button="Send report") + "</form>")
+    form_page("report.html", "Report a problem | Dotpoint", "Report a problem with Dotpoint.",
+              "Report a problem",
+              "Spotted a wrong figure, an old example, a broken link or something that doesn't work? Tell us here.",
+              [("It arrives by email", "Straight to the person who runs Dotpoint."),
+               ("It's checked", "The fact, figure or link is looked up again at its source."),
+               ("It's fixed", "The correction goes live for everyone as soon as it's confirmed.")],
+              form, sent_panel("report-sent", "Thanks for helping keep Dotpoint accurate."))
 
 
 data = site_data()

@@ -83,11 +83,11 @@ weekday evening, runs the tests, saves any changes and republishes. Turn off the
 task so the two don't overlap.
 
 Suggestions and problem reports: people use `suggest.html` and `report.html` (and the "Report a problem"
-box on each example and statistic). These email `contactInbox` in `data/config.js` through FormSubmit
-(formsubmit.co), so nobody needs a GitHub account. The first message sent asks that inbox to activate the
-form: click the link in FormSubmit's email once. FormSubmit then offers a random alias for the address; put
-it in `contactInbox` to keep the address out of the public code. A message that can't be sent is shown
-for copying instead, with an "Email it instead" link.
+box on each example and statistic). These are emailed to you by `tools/email-relay.gs`, a small Google Apps
+Script that runs in your own Google account and sends from your Gmail to your Gmail as a tidy, readable email.
+Set it up once by following the steps at the top of that file, then put its Web app URL (ending in `/exec`)
+in `contactEndpoint` in `data/config.js`. Until then, or if sending fails, the forms open the visitor's email
+app with the message written out, addressed to `contactEmail`. The relay sends at most 40 emails an hour.
 
 The older GitHub route still works for anyone who opens an issue directly: add the **approved** label
 and `add-submission.yml` turns it into a card, tests it, publishes it and closes the issue.

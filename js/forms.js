@@ -18,7 +18,8 @@
       const kind = picked(f, "kind") || "Example";
       const dp = f.elements.dotpoint;
       return {
-        subject: `Dotpoint suggestion: ${title}`.slice(0, 120),
+        kind: "suggestion",
+        subject: `Suggestion: ${title}`.slice(0, 120),
         title: "Dotpoint suggestion",
         fields: {
           Type: kind,
@@ -41,7 +42,8 @@
       if (!details) return "Describe the problem so it can be fixed.";
       const reason = picked(f, "reason") || "Something else";
       return {
-        subject: `Dotpoint problem: ${reason}`,
+        kind: "report",
+        subject: `Problem: ${reason}${val(f, "where") ? `, ${val(f, "where").slice(0, 60)}` : ""}`,
         title: "Dotpoint problem report",
         fields: {
           Problem: reason,

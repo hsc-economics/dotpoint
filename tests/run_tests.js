@@ -663,9 +663,19 @@ test("admin: a padlock in settings opens a password form, and the panel stays hi
 test("contact: suggestions and reports are emailed, not sent through GitHub", () => {
   load("data/config.js");
   load("js/contact.js");
-  ok(DP_CONTACT.ready, "an inbox is set in data/config.js");
   ok(/^mailto:[^?]+@[^?]+\?subject=Hi%20there&body=/.test(DP_CONTACT.mailto("Hi there", "text")), "email fallback link");
-  eq(DP_CONTACT.asText("T", { A: "1", B: "" }), "T\nA: 1\nB: (none)");
+  eq(DP_CONTACT.asText("T", { A: "1", B: "" }), "T\n\nA: 1\nB: (none)");
+  const real = DP_CONFIG;
+  DP_CONFIG = { contactEndpoint: "https://example.com/steal" };
+  load("js/contact.js");
+  ok(!DP_CONTACT.ready, "only a Google Apps Script web app address is accepted");
+  DP_CONFIG = { contactEndpoint: "https://script.google.com/macros/s/AKfycbx_abc-123/exec" };
+  load("js/contact.js");
+  ok(DP_CONTACT.ready && !DP_CONTACT.mailto("a", "b"), "an Apps Script address is used; no email address means no email link");
+  DP_CONFIG = real;
+  load("js/contact.js");
+  const relay = read("tools/email-relay.gs");
+  ok(/function doPost/.test(relay) && /MailApp\.sendEmail/.test(relay) && /MAX_PER_HOUR/.test(relay), "the relay script emails, with a limit");
   ok(!/github\.com\/[^"]*issues\/new/.test(app) && !html.includes("report-github"), "no GitHub issue links left");
   const build = read("tools/build_preview.py");
   ok(build.includes('"suggest.html"') && build.includes('"report.html"'), "the build writes both form pages");

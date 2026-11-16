@@ -111,6 +111,74 @@
     return el.animate(frames, opts);
   }
 
+  // ---------- switches: a solid thumb slides to the chosen option ----------
+  // Works on every .seg, .range and .status-ctl group, including ones drawn later. A group that is
+  // redrawn after a choice (the Year and time-range switches) starts its thumb where the old one was.
+
+  const SWITCHES = ".seg, .range, .status-ctl";
+  const lastPick = new Map();
+  const switchKey = (g) => g.id || g.getAttribute("aria-label") || g.getAttribute("aria-labelledby") || "";
+  const switchButtons = (g) => [...g.children].filter((c) => c.tagName === "BUTTON");
+
+  function moveThumb(g, b, animate) {
+    const thumb = g.querySelector(":scope > .seg-thumb");
+    if (!thumb) return;
+    if (!b || !b.offsetWidth) { thumb.style.opacity = "0"; return; }
+    if (!animate) thumb.classList.add("no-anim");
+    thumb.style.opacity = "1";
+    thumb.style.width = b.offsetWidth + "px";
+    thumb.style.height = b.offsetHeight + "px";
+    thumb.style.setProperty("--x", b.offsetLeft + "px");
+    thumb.style.setProperty("--y", b.offsetTop + "px");
+    if (!animate) { void thumb.offsetWidth; thumb.classList.remove("no-anim"); }
+  }
+
+  function placeThumb(g, animate) {
+    const btns = switchButtons(g);
+    const i = btns.findIndex((b) => b.getAttribute("aria-pressed") === "true");
+    moveThumb(g, btns[i], animate && !reducedMotion());
+    const k = switchKey(g);
+    if (k && i >= 0) lastPick.set(k, i);
+  }
+
+  function enhanceSwitch(g) {
+    if ("slide" in g.dataset) return;
+    g.dataset.slide = "";
+    g.prepend(h("span", { class: "seg-thumb", "aria-hidden": "true" }));
+    const btns = switchButtons(g), was = lastPick.get(switchKey(g));
+    if (was !== undefined && btns[was] && btns[was].getAttribute("aria-pressed") !== "true" && !reducedMotion()) {
+      moveThumb(g, btns[was], false);
+      nextFrame(() => placeThumb(g, true));
+    } else placeThumb(g, false);
+    if (typeof ResizeObserver === "function") new ResizeObserver(() => placeThumb(g, false)).observe(g);
+  }
+
+  function setupSwitches() {
+    document.querySelectorAll(SWITCHES).forEach(enhanceSwitch);
+    new MutationObserver((muts) => {
+      for (const m of muts) {
+        if (m.type === "attributes") {
+          const g = m.target.parentElement;
+          if (g && g.dataset && "slide" in g.dataset) placeThumb(g, true);
+        } else {
+          for (const n of m.addedNodes) {
+            if (n.nodeType !== 1) continue;
+            if (n.matches(SWITCHES)) enhanceSwitch(n);
+            n.querySelectorAll(SWITCHES).forEach(enhanceSwitch);
+          }
+        }
+      }
+    }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["aria-pressed"] });
+    // A tiny tap on phones that support it, when a switch changes.
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-slide] > button");
+      const tapped = !navigator.userActivation || navigator.userActivation.isActive;
+      if (b && tapped && e.isTrusted && b.getAttribute("aria-pressed") !== "true" && navigator.vibrate && !reducedMotion()) {
+        try { navigator.vibrate(8); } catch (err) { /* not allowed */ }
+      }
+    }, true);
+  }
+
   const DOT_COLOURS = ["var(--hl)", "var(--ink)", "var(--good)", "var(--hl)"];
 
   // Little dots that burst out from a point on the screen, then fade.
@@ -438,7 +506,7 @@
   function updateGold(celebrate) {
     const was = goldEarned;
     goldEarned = L.syllabusComplete(SY, progress, deck, TODAY);
-    $("set-gold").hidden = !goldEarned;
+    syncGoldControls();
     const on = goldOn();
     if (celebrate && goldEarned && !was && on && !goldForced()) setTimeout(goldUnlock, 600);
     else applyGold(on);
@@ -449,13 +517,25 @@
     const swap = () => { applyGold(true); if (ui.view === "today") render("today"); };
     if (typeof document.startViewTransition === "function" && !reducedMotion()) document.startViewTransition(swap);
     else swap();
-    toast("All dot points confident");
+    toast("All dot points confident. Gold finish on: turn it off any time in Settings");
+  }
+
+  // The Gold finish switch in Settings: shown to anyone who has earned the finish, or opened it from the
+  // admin panel, so it can always be turned off again.
+  function syncGoldControls() {
+    $("set-gold").hidden = !(goldEarned || goldForced());
+    $("set-gold-note").textContent = goldEarned
+      ? "Earned by rating every Year 11 and Year 12 dot point confident. Turn it off any time."
+      : "Turned on from the admin panel.";
+    const on = goldOn() ? "on" : "off";
+    for (const b of $("gold-seg").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.choice === on));
   }
 
   function setGold(choice) {
-    try {
-      if (choice === "off") localStorage.setItem(GOLD_KEY, "off"); else localStorage.removeItem(GOLD_KEY);
-    } catch (e) { /* storage blocked: this visit only */ }
+    writeKey(GOLD_KEY, choice === "off" ? "off" : null);
+    if (choice === "off") writeKey(FORCE_KEY, null);
+    else if (!goldEarned && adminUnlocked()) writeKey(FORCE_KEY, "on");
+    renderAdmin();
     const swap = () => { applyGold(goldOn()); renderSettings(); if (ui.view === "today") render("today"); };
     if (typeof document.startViewTransition === "function" && !reducedMotion()) document.startViewTransition(swap);
     else swap();
@@ -552,8 +632,7 @@
   function renderSettings() {
     const choice = themeChoice();
     for (const b of $("theme-seg").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.choice === choice));
-    const gold = goldWanted() ? "on" : "off";
-    for (const b of $("gold-seg").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.choice === gold));
+    syncGoldControls();
     const c = L.progressCounts(progress);
     $("set-counts").replaceChildren(...COUNT_LABELS.map(([k, one, many]) => h("div", { class: "set-count" },
       h("dt", null, c[k] === 1 ? one : many), h("dd", { "data-from": c[k] }, String(c[k])))));
@@ -746,11 +825,11 @@
     $("report-send").disabled = true;
     $("report-send").textContent = "Sending…";
     const item = reportLabel ? `${reportLabel.slice(0, 160)} (${r.target})` : r.target || "The site in general";
-    const subject = `Dotpoint problem: ${r.reason}${reportLabel ? `: ${reportLabel}` : ""}`.slice(0, 120);
+    const subject = `Problem: ${r.reason}${reportLabel ? `, ${reportLabel}` : ""}`.slice(0, 120);
     const fields = { Problem: r.reason, Item: item, Details: r.note || "(none)", Sent: r.at.slice(0, 10) };
     let sent = false;
     try {
-      sent = CONTACT.ready && await CONTACT.send(subject, fields);
+      sent = CONTACT.ready && await CONTACT.send("report", subject, fields);
     } catch (e) {
       sent = false;
     }
@@ -764,6 +843,9 @@
       const mail = CONTACT.mailto ? CONTACT.mailto(subject, $("report-copy").value) : "";
       $("report-email").href = mail || "#";
       $("report-email").hidden = !mail;
+      $("report-fallback-text").textContent = CONTACT.ready
+        ? "It didn't send. You can email it instead, or copy the text below."
+        : "Press “Email it instead” to open your email app with this report written, then send it from there.";
       $("report-fallback").hidden = false;
       $("report-send").hidden = true;
       $("report-cancel").textContent = "Close";
@@ -997,7 +1079,8 @@
     return h("section", { class: "study-band", "aria-labelledby": "h-study" },
       h("h2", { id: "h-study" }, "Your study"),
       gold && h("p", { class: "gold-note" }, h("span", { class: "gold-seal", "aria-hidden": "true" }),
-        `${allSt.length} of ${allSt.length} dot points confident, Year 11 and Year 12.`),
+        h("span", null, `${allSt.length} of ${allSt.length} dot points confident, Year 11 and Year 12.`),
+        h("button", { type: "button", class: "link-btn", onclick: () => setGold("off") }, "Turn off the gold finish")),
       h("div", { class: "study-actions" },
         h("section", { class: "panel revise", "aria-labelledby": "h-revise" },
           h("div", null,
@@ -2413,6 +2496,7 @@
     for (const b of $("theme-seg").querySelectorAll("button")) b.addEventListener("click", () => setTheme(b.dataset.choice));
     for (const b of $("gold-seg").querySelectorAll("button")) b.addEventListener("click", () => setGold(b.dataset.choice));
     setupAdmin();
+    setupSwitches();
     updateGold(false);
     setupResetHold();
     $("report-form").addEventListener("submit", (e) => { e.preventDefault(); sendReport(); });

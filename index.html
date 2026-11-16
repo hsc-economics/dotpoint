@@ -328,6 +328,19 @@ h1, h2, .ev, .fa, .dp { scroll-margin-top: 84px; }
 .seg button:hover, .range button:hover, .status-ctl button:hover { color: var(--ink); background: var(--soft); }
 .seg button[aria-pressed="true"], .range button[aria-pressed="true"], .status-ctl button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 .status-ctl button[aria-pressed="true"] .mark { border-color: var(--paper); }
+/* the sliding thumb (js/app.js adds it): the chosen option's dark pill glides across, with a little give */
+[data-slide] { position: relative; isolation: isolate; }
+[data-slide] > button { position: relative; transition: color 0.22s ease, transform 0.12s ease, background-color 0.15s ease; }
+[data-slide] > button[aria-pressed="true"], [data-slide] > button[aria-pressed="true"]:hover { background: transparent; }
+.seg-thumb {
+  position: absolute; top: 0; left: 0; z-index: -1; pointer-events: none; border-radius: 5px; background: var(--ink);
+  transform: translate(var(--x, 0), var(--y, 0)) scale(var(--s, 1));
+  transition: transform 0.38s cubic-bezier(.3, 1.4, .45, 1), width 0.38s cubic-bezier(.3, 1.4, .45, 1), height 0.2s ease, opacity 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 6px 14px -8px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.seg-thumb.no-anim { transition: none; }
+[data-slide]:active .seg-thumb { --s: 0.96; }
+[data-slide] { box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06); }
 .status-ctl button[aria-pressed="true"] .mark.m-none { border-color: var(--muted); }
 .fa { display: grid; gap: 4px; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r); padding: 20px 22px 8px; }
 .fa-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px 12px; flex-wrap: wrap; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
@@ -498,6 +511,8 @@ dialog.sheet::backdrop { background: rgba(18, 24, 21, 0.24); }
 #admin-msg:empty { display: none; }
 #admin-msg { color: var(--bad); }
 .admin-panel .btn { justify-self: start; }
+.admin-panel .seg { display: flex; }
+.admin-panel .seg button { flex: 1 1 0; justify-content: center; min-height: 44px; padding-inline: 8px; }
 
 /* hold to reset: a red bar sweeps across while it's held down, turning the words over as it passes */
 .hold-btn {
@@ -882,7 +897,7 @@ textarea.field { min-height: 100px; resize: vertical; }
 [data-gold="on"] footer { border-top-color: var(--silver); }
 [data-gold="on"] .subject { border-left-color: var(--silver); }
 /* panels and cards: silver edges that turn gold under the pointer */
-[data-gold="on"] :is(.panel, .tile, .fa-tiles button, .res-table-wrap) { border-color: var(--silver); }
+[data-gold="on"] :is(.panel, .fa, .tile, .fa-tiles button, .res-table-wrap, .ev, .daily-list) { border-color: var(--silver); }
 [data-gold="on"] .study-band .panel { border-color: var(--silver-faint); }
 [data-gold="on"] :is(.tile, .fa-tiles button):hover { border-color: var(--gold); }
 [data-gold="on"] .study-band { border-block: 1px solid var(--silver-faint); }
@@ -894,8 +909,47 @@ textarea.field { min-height: 100px; resize: vertical; }
 .done-mark:not([hidden])::before {
   content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--hl); box-shadow: 0 0 0 1.5px var(--paper), 0 0 0 2.5px var(--silver);
 }
+/* mid-size screens: the header is tight, so the mark shrinks to its gold dot (the number stays in its tooltip) */
+@media (min-width: 761px) and (max-width: 1100px) { .done-mark { font-size: 0; gap: 0; } }
 .gold-note { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: var(--fs-sm); margin-top: -16px; }
 .gold-seal { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--hl); box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--silver); }
+.gold-note .link-btn { font-size: inherit; }
+/* the finer details: silver corner brackets with a tiny gold dot in a silver ring (the logo in miniature) on every
+   card, page titles that end in a gold dot point, a silver line inside the header's gold one, a gold dot set into
+   the footer rule, and a soft sheen at the top of the page */
+:root[data-gold="on"] { --sheen: rgba(255, 253, 246, 0.95); --orn: #a3a9b0; }
+@media (prefers-color-scheme: dark) { :root[data-gold="on"]:not([data-theme="light"]) { --sheen: rgba(210, 178, 106, 0.09); --orn: #80878f; } }
+:root[data-gold="on"][data-theme="dark"] { --sheen: rgba(210, 178, 106, 0.09); --orn: #80878f; }
+[data-gold="on"] body { background: radial-gradient(ellipse 110% 55% at 50% -8%, var(--sheen), transparent 70%) no-repeat fixed, var(--paper); }
+[data-gold="on"] :is(.panel, .fa, .tile, .fa-tiles button, .res-table-wrap, .ev, .daily-list) { position: relative; }
+[data-gold="on"] :is(.panel, .fa, .tile, .fa-tiles button, .res-table-wrap, .ev, .daily-list)::before {
+  content: ""; position: absolute; inset: 5px; pointer-events: none; border: 1px solid var(--orn); border-radius: calc(var(--r) - 5px);
+  -webkit-mask: linear-gradient(#000 0 0) 0 0 / 24px 24px no-repeat, linear-gradient(#000 0 0) 100% 0 / 24px 24px no-repeat,
+    linear-gradient(#000 0 0) 0 100% / 24px 24px no-repeat, linear-gradient(#000 0 0) 100% 100% / 24px 24px no-repeat;
+  mask: linear-gradient(#000 0 0) 0 0 / 24px 24px no-repeat, linear-gradient(#000 0 0) 100% 0 / 24px 24px no-repeat,
+    linear-gradient(#000 0 0) 0 100% / 24px 24px no-repeat, linear-gradient(#000 0 0) 100% 100% / 24px 24px no-repeat;
+}
+[data-gold="on"] :is(.panel, .fa, .fa-tiles button, .res-table-wrap)::after {
+  --ring: radial-gradient(circle, var(--hl) 0 2.2px, transparent 2.7px 3.5px, var(--orn) 3.7px 4.7px, transparent 5.2px);
+  content: ""; position: absolute; inset: 6px; pointer-events: none;
+  background: var(--ring) 0 0 / 12px 12px no-repeat, var(--ring) 100% 0 / 12px 12px no-repeat,
+    var(--ring) 0 100% / 12px 12px no-repeat, var(--ring) 100% 100% / 12px 12px no-repeat;
+}
+[data-gold="on"] main h1::after {
+  content: ""; display: inline-block; width: 0.17em; height: 0.17em; margin-left: 0.1em; vertical-align: 0.02em; border-radius: 50%;
+  background: var(--hl); box-shadow: 0 0 0 0.04em var(--paper), 0 0 0 0.075em var(--silver);
+}
+[data-gold="on"] .topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 2px; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--silver-faint) 12%, var(--silver) 50%, var(--silver-faint) 88%, transparent);
+}
+@media (max-width: 760px) { [data-gold="on"] .topbar { position: relative; } }
+[data-gold="on"] footer { position: relative; }
+[data-gold="on"] footer::before {
+  content: ""; position: absolute; top: -5px; left: 50%; width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%;
+  background: var(--hl); box-shadow: 0 0 0 2.5px var(--paper), 0 0 0 3.5px var(--silver);
+}
+[data-gold="on"] .seg-thumb { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 6px 14px -8px rgba(0, 0, 0, 0.45), inset 0 0 0 1px var(--gold); }
 </style>
 
 <script>try { var t = localStorage.getItem("dotpoint.theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; if (localStorage.getItem("dotpoint.gold.shown") === "1") document.documentElement.dataset.gold = "on"; } catch (e) {}</script>
@@ -991,7 +1045,7 @@ textarea.field { min-height: 100px; resize: vertical; }
     </section>
     <section class="set-group" id="set-gold" aria-labelledby="set-gold-h" hidden>
       <h3 id="set-gold-h">Gold finish</h3>
-      <p class="small muted">Earned by rating every Year 11 and Year 12 dot point confident.</p>
+      <p class="small muted" id="set-gold-note">Earned by rating every Year 11 and Year 12 dot point confident.</p>
       <div class="seg" id="gold-seg" role="group" aria-labelledby="set-gold-h">
         <button type="button" data-choice="on" aria-pressed="true">On</button>
         <button type="button" data-choice="off" aria-pressed="false">Off</button>
