@@ -7,8 +7,9 @@
 For search engines it also:
   - puts the title, description and links in the <head>, with a fuller title and description, a canonical
     address, sharing tags and structured data (the Claude version keeps its short title)
-  - writes dot-points.html and examples.html, plain pages anyone (or any search engine) can read without
-    running the app: every dot point with its key terms, and every checked example
+  - writes dot-points.html, examples.html and past-papers.html, plain pages anyone (or any search engine) can
+    read without running the app: every dot point with its key terms, every checked example, and every
+    official past paper and resource
   - writes sitemap.xml listing those pages
 The plain pages read data/syllabus.js and data/evidence.js with a JavaScript engine (macOS JavaScriptCore,
 or Node.js on GitHub). Without one, they are skipped with a warning.
@@ -89,7 +90,8 @@ head = SKELETON.replace("</head>", "".join(seo + keep) + "</head>")
 # ---------- plain pages for readers and search engines ----------
 
 def site_data():
-    script = 'load("data/syllabus.js"); load("data/evidence.js"); print(JSON.stringify({sy: DP_SYLLABUS, ev: DP_EVIDENCE}));'
+    script = ('load("data/syllabus.js"); load("data/evidence.js"); load("data/resources.js");'
+              'print(JSON.stringify({sy: DP_SYLLABUS, ev: DP_EVIDENCE, res: DP_RESOURCES}));')
     runs = []
     if JSC.exists():
         runs.append([str(JSC), "-e", script])
@@ -142,7 +144,7 @@ def plain_page(name, title, desc, body):
            '<footer class="small muted"><p>Dotpoint is a free, independent study site for NSW HSC Economics and is not '
            'affiliated with NESA. Dot point summaries are in our own words; always check the '
            f'<a href="https://curriculum.nsw.edu.au/learning-areas/hsie/economics-11-12-2025/content">official syllabus</a>.</p>'
-           '<p class="links"><a href="./">Dotpoint home</a><a href="dot-points.html">All dot points</a><a href="examples.html">All examples</a></p>'
+           '<p class="links"><a href="./">Dotpoint home</a><a href="dot-points.html">All dot points</a><a href="examples.html">All examples</a><a href="past-papers.html">Past papers</a></p>'
            "</footer></div></body></html>")
     (out / name).write_text(doc, encoding="utf-8")
 
@@ -196,14 +198,54 @@ def examples_page(sy, ev):
                "".join(parts))
 
 
+def papers_page(res):
+    items = res["items"]
+    hsc = [i for i in items if i["group"] == "hsc"]
+    years = sorted({i["year"] for i in hsc}, reverse=True)
+    parts = ['<h1>HSC Economics past papers</h1>',
+             f'<p class="lead">Every official HSC Economics exam paper from {years[-1]} to {years[0]}, with marking guidelines '
+             'and marker feedback, plus real answers at every band and the Reserve Bank\'s study guides. Links open each '
+             'file on NESA\'s or the RBA\'s own site. Checked for new papers every day.</p>' if years else '<p class="lead">Official HSC Economics past papers and study guides.</p>',
+             '<a class="cta" href="./#resources">Open them in Dotpoint</a>']
+    ns = [i for i in items if i["group"] == "new-syllabus"]
+    if ns:
+        parts.append("<h2>New syllabus sample exam (first examined in the 2028 HSC)</h2>")
+        parts += [f'<p><a href="{esc(i["url"])}">{esc(i["title"])}</a> <span class="small muted">{esc(i.get("format", ""))}</span></p>' for i in ns]
+    if years:
+        parts.append("<h2>HSC exam papers and marking guidelines</h2>")
+        for y in years:
+            links = [f'<a href="{esc(i["url"])}">{esc(i["kind"])}</a>' for i in sorted((i for i in hsc if i["year"] == y), key=lambda i: i["kind"] != "Exam paper")]
+            parts.append(f'<div class="dp"><p>{y} HSC Economics</p><p class="small">{" · ".join(links)}</p></div>')
+    st = [i for i in items if i["group"] == "standards"]
+    if st:
+        parts.append("<h2>Band samples: real HSC answers at every band</h2>")
+        groups = {}
+        for i in st:
+            groups.setdefault(i["title"].split(": ")[0], []).append(i)
+        for name, its in groups.items():
+            links = " · ".join(f'<a href="{esc(i["url"])}">{esc(i["title"].split(": ", 1)[-1])}</a>' for i in its)
+            parts.append(f'<div class="dp"><p>{esc(name)}</p><p class="small">{links}</p></div>')
+    rba = [i for i in items if i["group"] == "rba"]
+    if rba:
+        parts.append("<h2>Reserve Bank study guides</h2>")
+        for i in rba:
+            parts.append(f'<div class="dp"><p><a href="{esc(i["url"])}">{esc(i["title"])}</a></p>'
+                         + (f'<p class="small muted">{esc(i["desc"])}</p>' if i.get("desc") else "") + "</div>")
+    parts.append('<p class="small muted">Dotpoint isn\'t affiliated with NESA or the RBA and doesn\'t host their files.</p>')
+    plain_page("past-papers.html", "HSC Economics past papers, marking guidelines and band samples | Dotpoint",
+               "Every official HSC Economics past paper with marking guidelines and marker feedback, real answers at every band, "
+               "and RBA study guides. Updated daily.", "".join(parts))
+
+
 data = site_data()
 pages = [""]
 if data:
     dot_points_page(data["sy"], data["ev"])
     examples_page(data["sy"], data["ev"])
-    pages += ["dot-points.html", "examples.html"]
+    papers_page(data["res"])
+    pages += ["dot-points.html", "examples.html", "past-papers.html"]
 else:
-    print("No JavaScript engine found, so dot-points.html and examples.html were skipped.")
+    print("No JavaScript engine found, so dot-points.html, examples.html and past-papers.html were skipped.")
 today = date.today().isoformat()
 (out / "sitemap.xml").write_text(
     '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'

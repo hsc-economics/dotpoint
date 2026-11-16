@@ -6,6 +6,7 @@ load("data/stats.js");
 load("data/questions.js");
 load("data/news.js");
 load("data/news-archive.js");
+load("data/resources.js");
 load("js/logic.js");
 
 const L = DP_LOGIC, SY = DP_SYLLABUS, EV = DP_EVIDENCE, ST = DP_STATS, NEWS = DP_NEWS;
@@ -460,11 +461,11 @@ const app = read("js/app.js");
 test("page: every element id used by app.js exists in index.html or is created by app.js", () => {
   const used = [...app.matchAll(/\$\("([a-z0-9-]+)"\)/g)].map((m) => m[1]);
   const created = new Set([...app.matchAll(/id: "([a-z0-9-]+)"/g)].map((m) => m[1]));
-  for (const v of ["today", "syllabus", "evidence", "stats", "drills", "essay"]) { created.add("view-" + v); created.add("h-" + v); }
+  for (const v of ["today", "syllabus", "evidence", "stats", "resources", "drills", "essay"]) { created.add("view-" + v); created.add("h-" + v); }
   for (const id of new Set(used)) ok(html.includes(`id="${id}"`) || created.has(id), `missing #${id}`);
 });
 test("page: scripts load in dependency order", () => {
-  const order = ["data/syllabus.js", "data/evidence.js", "data/stats.js", "data/questions.js", "data/news.js", "data/news-archive.js", "data/config.js", "js/logic.js", "js/app.js"].map((f) => html.indexOf(`src="${f}"`));
+  const order = ["data/syllabus.js", "data/evidence.js", "data/stats.js", "data/questions.js", "data/news.js", "data/news-archive.js", "data/resources.js", "data/config.js", "js/logic.js", "js/app.js"].map((f) => html.indexOf(`src="${f}"`));
   ok(order.every((x, i) => x > 0 && (i === 0 || x > order[i - 1])), JSON.stringify(order));
 });
 test("page: no document skeleton tags (the publisher adds them)", () => {
@@ -601,6 +602,40 @@ test("news archive: the collector keeps strikes about work, not air strikes", ()
   const line = py.split("\n").find((l) => l.includes('"lm-safety-net"'));
   ok(line && !/"strike"|"strikes"/.test(line), line);
 });
+
+// ---------- past papers and resources ----------
+const RES = DP_RESOURCES;
+test("resources: every item has an id, title, kind, publisher, group and https link", () => {
+  ok(RES.items.length >= 20, `only ${RES.items.length} resources`);
+  eq(new Set(RES.items.map((i) => i.id)).size, RES.items.length, "ids are unique");
+  eq(new Set(RES.items.map((i) => i.url)).size, RES.items.length, "links are unique");
+  for (const i of RES.items) {
+    for (const k of ["id", "title", "kind", "publisher", "group", "url", "page", "added"]) ok(i[k], `${i.id} missing ${k}`);
+    ok(["new-syllabus", "hsc", "standards", "rba"].includes(i.group), `${i.id} group ${i.group}`);
+    ok(/^https:\/\//.test(i.url) && /^https:\/\//.test(i.page), `${i.id} link`);
+    ok(!i.pdf || /^https:\/\/.+\.pdf/i.test(i.pdf), `${i.id} pdf`);
+    ok(L.parseISO(i.added), `${i.id} added ${i.added}`);
+    ok(!/^download\b/i.test(i.title), `${i.id} has a placeholder title: ${i.title}`);
+  }
+  ok(L.parseISO(RES.updated) && L.parseISO(RES.since) && RES.since <= RES.updated, "dates");
+});
+test("resources: links only to the publishers' own sites (files are never copied)", () => {
+  for (const i of RES.items) ok(/^https:\/\/(www\.nsw\.gov\.au|library\.curriculum\.nsw\.edu\.au|curriculum\.nsw\.edu\.au|www\.rba\.gov\.au)\//.test(i.url), `${i.id} ${i.url}`);
+});
+test("resources: HSC exam packs have a paper for every year, and years are real", () => {
+  const hsc = RES.items.filter((i) => i.group === "hsc");
+  const years = [...new Set(hsc.map((i) => i.year))];
+  ok(years.length >= 10, `${years.length} years`);
+  for (const y of years) {
+    ok(Number.isInteger(y) && y >= 2001 && y <= new Date().getFullYear(), `year ${y}`);
+    ok(hsc.some((i) => i.year === y && i.kind === "Exam paper"), `no exam paper for ${y}`);
+    eq(hsc.filter((i) => i.year === y && i.kind === "Exam paper").length, 1, `one exam paper for ${y}`);
+  }
+});
+test("resources: dot point tags all exist", () => {
+  for (const i of RES.items) for (const d of i.dotpoints || []) ok(dpIndex[d], `${i.id} -> ${d}`);
+});
+test("resources: the Papers tab is in the menu", () => ok(html.includes('data-nav="resources"') && html.includes('id="view-resources"')));
 
 test("page: has a short title", () => { const m = /<title>([^<]+)<\/title>/.exec(html); ok(m && m[1].split(" ").length <= 4, m && m[1]); });
 test("page: app.js never uses innerHTML", () => ok(!/innerHTML/.test(app)));

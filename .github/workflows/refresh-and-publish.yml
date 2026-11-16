@@ -1,7 +1,8 @@
 # Keeps Dotpoint up to date without Claude.
 # Every weekday evening (Sydney time) it downloads the latest RBA and ABS figures, and several times a
 # day it collects the top headlines for "In the news" and adds the strongest to the news archive on the
-# Examples page. It runs the tests, saves anything new to the
+# Examples page. Every morning it checks NESA and the RBA for new past papers and study resources for the
+# Papers page. It runs the tests, saves anything new to the
 # repository, and publishes the site to GitHub Pages.
 # It also publishes whenever you push a change to the main branch, and you can run it by hand
 # from the Actions tab ("Run workflow").
@@ -11,6 +12,7 @@ on:
   schedule:
     - cron: "30 8 * * 1-5"   # 08:30 UTC = 7:30pm AEDT / 6:30pm AEST, after the RBA's daily tables update
     - cron: "0 20,23,2,5,11 * * *"   # headlines through the day: 7am, 10am, 1pm, 4pm and 10pm AEDT
+    - cron: "0 19 * * *"   # past papers and resources: 6am AEDT / 5am AEST every day
   workflow_dispatch:
   push:
     branches: [main]
@@ -42,22 +44,31 @@ jobs:
         continue-on-error: true
         run: python3 tools/update_stats.py
       - name: Download the top headlines
+        if: github.event.schedule != '0 19 * * *'
         continue-on-error: true
         run: python3 tools/update_news.py
+      # Once a day (and when run by hand): look for new past papers and resources. The script keeps the
+      # last good list for any source that doesn't answer.
+      - name: Look for new past papers and resources
+        if: github.event.schedule == '0 19 * * *' || github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        run: python3 tools/update_resources.py
       - name: Run the tests
         run: sh tests/run_tests.sh
       - name: Save new figures and headlines
         run: |
-          if git diff --quiet -- data/stats.js data/news.js && [ -z "$(git status --porcelain -- data/news-archive.js)" ]; then
+          if git diff --quiet -- data/stats.js data/news.js && [ -z "$(git status --porcelain -- data/news-archive.js data/resources.js)" ]; then
             echo "Nothing new."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/stats.js data/news.js data/news-archive.js
-          if git diff --cached --quiet -- data/stats.js; then what="news"
-          elif git diff --cached --quiet -- data/news.js data/news-archive.js; then what="statistics"
-          else what="statistics and news"; fi
+          git add data/stats.js data/news.js data/news-archive.js data/resources.js
+          what=""
+          git diff --cached --quiet -- data/stats.js || what="statistics"
+          git diff --cached --quiet -- data/news.js data/news-archive.js || what="${what:+$what, }news"
+          git diff --cached --quiet -- data/resources.js || what="${what:+$what, }past papers"
+          what=$(echo "$what" | sed 's/, \([^,]*\)$/ and \1/')
           git commit -m "Refresh $what $(date -u +%Y-%m-%d)"
           git push
 

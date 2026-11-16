@@ -148,6 +148,7 @@ a:hover { text-decoration-thickness: 2px; }
   display: inline-flex; align-items: center; gap: 6px; position: relative;
 }
 .tab svg { display: none; }
+.tab-short { display: none; }
 .tab:hover { color: var(--ink); background: var(--soft); }
 .tab[aria-current="page"] { color: var(--on-hl); background: var(--hl); }
 .tab .badge {
@@ -174,9 +175,14 @@ a:hover { text-decoration-thickness: 2px; }
   .tab[aria-current="page"] { background: none; color: var(--ink); }
   .tab[aria-current="page"] svg { background: var(--hl); color: var(--on-hl); }
   .tab .badge { position: absolute; top: 0; left: calc(50% + 8px); }
+  /* seven tabs share a phone's width: a shorter word for Flashcards, and slightly smaller labels */
+  .tab-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .tab-short { display: inline; }
   /* keep the footer clear of the fixed tab bar */
   body { padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
 }
+
+@media (max-width: 400px) { .tab { font-size: 0.6875rem; } }
 
 /* ---------- page structure ---------- */
 main { display: block; width: 100%; }
@@ -792,6 +798,46 @@ textarea.field { min-height: 100px; resize: vertical; }
   .flip-inner { transition: none; }
   .tile:hover, .deck:hover, .brand:hover .brand-art, .btn:active, .tag:active, .tile:active, .deck:active, .tab:active, .seg button:active, .range button:active, .status-ctl button:active { transform: none; }
 }
+
+/* ---------- past papers and resources ---------- */
+.res-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.res-item { display: grid; gap: 4px; padding: 14px 0; border-top: 1px solid var(--rule); min-width: 0; }
+.res-item:last-child { border-bottom: 1px solid var(--rule); }
+.res-item > div { display: flex; gap: 6px 10px; align-items: baseline; flex-wrap: wrap; }
+.res-title { font-weight: 600; color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1px; padding-block: 6px; margin-block: -6px; }
+.res-title:hover { text-decoration-thickness: 2px; }
+.res-title-plain { font-weight: 600; }
+.res-desc { color: var(--muted); font-size: var(--fs-sm); max-width: 72ch; }
+.res-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; font-size: var(--fs-sm); color: var(--muted); }
+.res-file { font-weight: 600; color: var(--ink); display: inline-flex; align-items: center; min-height: 44px; text-underline-offset: 3px; }
+.res-meta .res-file { min-height: 32px; }
+.res-dps { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.res-dp { border: 0; cursor: pointer; font: inherit; font-size: var(--fs-sm); min-height: 32px; }
+.res-dp:hover { box-shadow: inset 0 0 0 1px var(--rule-strong); color: var(--ink); }
+.chip.res-new { background: var(--hl); color: var(--on-hl); }
+.res-bands { display: flex; flex-wrap: wrap; gap: 8px; }
+.res-band { min-height: 36px; text-decoration: none; color: var(--ink); }
+.res-band:hover { box-shadow: inset 0 0 0 1px var(--rule-strong); }
+.res-callout { display: grid; gap: 14px; border-left: 4px solid var(--hl); }
+.res-callout .res-item:last-child { border-bottom: 0; }
+.res-kind { display: grid; gap: 4px; }
+.res-kind h3 { font-size: var(--fs-md); margin-top: 10px; }
+.res-table-wrap { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; }
+.res-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.res-table th, .res-table td { text-align: left; padding: 4px 18px; border-top: 1px solid var(--rule); vertical-align: middle; position: static; background: none; white-space: normal; }
+.res-table thead th { border-top: 0; padding-block: 12px; color: var(--muted); font-weight: 600; }
+.res-table tbody th { font-family: var(--font-display); font-size: 1.125rem; font-variant-numeric: tabular-nums; width: 5.5rem; }
+.res-table td .chip { margin-left: 8px; }
+.res-foot { max-width: 72ch; }
+@media (max-width: 600px) {
+  .res-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .res-table, .res-table tbody, .res-table tr, .res-table th, .res-table td { display: block; width: auto; }
+  .res-table tr { padding: 12px 16px; border-top: 1px solid var(--rule); }
+  .res-table tbody tr:first-child { border-top: 0; }
+  .res-table th, .res-table td { border: 0; padding: 0; }
+  .res-table td { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .res-table td::before { content: attr(data-label); color: var(--muted); }
+}
 </style>
 
 <script>try { var t = localStorage.getItem("dotpoint.theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
@@ -811,8 +857,10 @@ textarea.field { min-height: 100px; resize: vertical; }
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>Examples</button>
       <button type="button" class="tab" data-nav="stats">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l5-6 4 3 6-8 3 3" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Stats</button>
+      <button type="button" class="tab" data-nav="resources">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l5 5v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v7M9 14l3 3 3-3" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Papers</button>
       <button type="button" class="tab" data-nav="drills">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="14" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 3h12a2 2 0 0 1 2 2v10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>Flashcards<span class="badge" id="due-badge" hidden></span></button>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="14" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 3h12a2 2 0 0 1 2 2v10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg><span class="tab-long">Flashcards</span><span class="tab-short" aria-hidden="true">Cards</span><span class="badge" id="due-badge" hidden></span></button>
       <button type="button" class="tab" data-nav="essay">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-4-4L4 16z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="2" fill="none"/></svg>Essays</button>
     </nav>
@@ -825,6 +873,7 @@ textarea.field { min-height: 100px; resize: vertical; }
   <section class="view" id="view-syllabus" aria-labelledby="h-syllabus" hidden></section>
   <section class="view" id="view-evidence" aria-labelledby="h-evidence" hidden></section>
   <section class="view" id="view-stats" aria-labelledby="h-stats" hidden></section>
+  <section class="view" id="view-resources" aria-labelledby="h-resources" hidden></section>
   <section class="view" id="view-drills" aria-labelledby="h-drills" hidden></section>
   <section class="view" id="view-essay" aria-labelledby="h-essay" hidden></section>
   <noscript><p class="empty">Dotpoint needs JavaScript turned on.</p></noscript>
@@ -901,6 +950,7 @@ textarea.field { min-height: 100px; resize: vertical; }
 <script src="data/questions.js"></script>
 <script src="data/news.js"></script>
 <script src="data/news-archive.js"></script>
+<script src="data/resources.js"></script>
 <script src="data/config.js"></script>
 <script src="js/logic.js"></script>
 <script src="js/app.js"></script>

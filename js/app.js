@@ -24,7 +24,9 @@
   const ALL_EV = EV.concat(NEWS_EV);
   const EV_PAGE = 30;
   const indById = Object.fromEntries(ST.indicators.map((i) => [i.id, i]));
-  const VIEWS = ["today", "syllabus", "evidence", "stats", "drills", "essay"];
+  const VIEWS = ["today", "syllabus", "evidence", "stats", "resources", "drills", "essay"];
+  // Official past papers and study resources, collected daily by tools/update_resources.py
+  const RES = globalThis.DP_RESOURCES || { items: [] };
   const STATUS_LABEL = { none: "Unsure", shaky: "Getting there", confident: "Confident" };
 
   const ui = {
@@ -631,6 +633,7 @@
 
   function go(view, opts) {
     if (view === "skills") view = "syllabus"; // old links
+    if (view === "papers") view = "resources";
     if (!VIEWS.includes(view)) view = "today";
     // A finished flashcard session shouldn't greet you next time you open Flashcards.
     if (view === "drills" && ui.drill && ui.drill.i >= ui.drill.queue.length && ui.view !== "drills") ui.drill = null;
@@ -666,6 +669,7 @@
     else if (view === "syllabus") renderSyllabus();
     else if (view === "evidence") renderEvidence();
     else if (view === "stats") renderStats();
+    else if (view === "resources") renderResources();
     else if (view === "drills") renderDrills();
     else if (view === "essay") renderEssay();
   }
@@ -1638,6 +1642,145 @@
     if (!queue.length) { toast("No flashcards here yet"); return; }
     ui.drill = { key, queue, base: queue.length, i: 0, shown: false, results: { again: 0, hard: 0, good: 0 }, requeued: {}, log: [] };
     go("drills");
+  }
+
+
+  // ---------- past papers and resources ----------
+  // Everything here comes from data/resources.js. Links open the file on the publisher's own site.
+
+  // Shown as new for 30 days after the daily check first finds it (not on the day collecting began).
+  function isNewResource(it) {
+    if (!it.added || !RES.since || it.added <= RES.since) return false;
+    const d = L.parseISO(it.added);
+    return d && (TODAY - d) / 86400000 <= 30;
+  }
+
+  function newChip(it) {
+    return isNewResource(it) ? h("span", { class: "chip res-new" }, "New") : null;
+  }
+
+  function fileLabel(it) {
+    return [it.format === "Web page" ? "Web page" : it.format || "PDF", it.size].filter(Boolean).join(", ");
+  }
+
+  function extLink(url, label, cls, srLabel) {
+    return h("a", { href: url, target: "_blank", rel: "noopener", class: cls },
+      label, srLabel && h("span", { class: "sr-only" }, " " + srLabel), h("span", { "aria-hidden": "true" }, " ↗"));
+  }
+
+  function dpChips(ids) {
+    const known = (ids || []).filter((id) => dpIndex[id]);
+    if (!known.length) return null;
+    return h("span", { class: "res-dps" }, known.map((id) =>
+      h("button", { type: "button", class: "chip quiet res-dp", onclick: () => openDotpoint(id), title: dpIndex[id].text }, dpIndex[id].short)));
+  }
+
+  function renderResources() {
+    const root = $("view-resources");
+    root.replaceChildren();
+    const items = RES.items || [];
+    const of = (g) => items.filter((i) => i.group === g);
+    const fresh = items.filter(isNewResource);
+
+    root.append(viewHead("resources", "Past papers and resources",
+      "Every official HSC Economics past paper, marking guideline and band sample we can find, plus the RBA's study guides. Dotpoint checks the publishers' sites for new ones every day. Links open the file on the publisher's own site."));
+
+    if (fresh.length) {
+      root.append(h("section", { class: "section", "aria-labelledby": "res-new-h" },
+        h("h2", { id: "res-new-h" }, "New this month"),
+        h("ul", { class: "res-list" }, fresh.slice(0, 8).map((it) => h("li", { class: "res-item" },
+          h("div", null, extLink(it.url, it.title, "res-title", `(${fileLabel(it)}, opens in a new tab)`)),
+          meta("res-meta", it.publisher, it.kind, fileLabel(it), `Found ${L.fmtDate(it.added)}`))))));
+    }
+
+    // the new syllabus: NESA's sample paper
+    const ns = of("new-syllabus");
+    if (ns.length) {
+      root.append(h("section", { class: "section panel res-callout", "aria-labelledby": "res-ns-h" },
+        h("div", null,
+          h("h2", { id: "res-ns-h" }, "The new syllabus sample exam"),
+          h("p", { class: "muted" }, "NESA's sample paper for the Economics 11–12 Syllabus (2025), first examined in the 2028 HSC. It shows the new layout: multiple choice, short answers, a stimulus-based question and an extended response.")),
+        h("ul", { class: "res-list" }, ns.map((it) => h("li", { class: "res-item" },
+          h("div", null, extLink(it.url, it.title.replace(/^Economics 11–12 \(2025\): /, ""), "res-title", `(${fileLabel(it)}, opens in a new tab)`), newChip(it)),
+          meta("res-meta", it.publisher, fileLabel(it)))))));
+    }
+
+    // HSC exam packs: one row per year
+    const hsc = of("hsc");
+    if (hsc.length) {
+      const years = [...new Set(hsc.map((i) => i.year))].sort((a, b) => b - a);
+      const cols = [["Exam paper", "Exam paper"], ["Marking guidelines", "Marking guidelines"], ["Marker feedback", "Marker feedback"]];
+      const table = h("table", { class: "res-table" },
+        h("caption", { class: "sr-only" }, "HSC Economics exam papers by year"),
+        h("thead", null, h("tr", null, h("th", { scope: "col" }, "Year"), cols.map(([, label]) => h("th", { scope: "col" }, label)))),
+        h("tbody", null, years.map((y) => {
+          const row = hsc.filter((i) => i.year === y);
+          return h("tr", null,
+            h("th", { scope: "row" }, String(y)),
+            cols.map(([kind, label]) => {
+              const it = row.find((i) => i.kind === kind);
+              return h("td", { "data-label": label }, it
+                ? [extLink(it.url, it.format === "Web page" ? "Read on NESA" : fileLabel(it), "res-file", `${y} ${label.toLowerCase()}, opens in a new tab`), newChip(it)]
+                : h("span", { class: "muted small" }, "Not out yet"));
+            }));
+        })));
+      root.append(h("section", { class: "section", "aria-labelledby": "res-hsc-h" },
+        h("div", { class: "section-head" }, h("div", null,
+          h("h2", { id: "res-hsc-h" }, "HSC exam papers"),
+          h("p", { class: "muted small" }, `${years.length} years from NESA, each with its marking guidelines and what markers said about students' answers. These were set on the 2009 syllabus, which is examined up to the 2027 HSC.`))),
+        h("div", { class: "res-table-wrap" }, table)));
+    }
+
+    // band samples: real answers at each band, grouped by question
+    const st = of("standards");
+    if (st.length) {
+      const groups = [];
+      for (const it of st) {
+        const name = it.title.split(": ")[0];
+        let g = groups.find((x) => x.name === name);
+        if (!g) groups.push(g = { name, items: [] });
+        g.items.push(it);
+      }
+      const bandOrder = (b) => -parseInt((b || "0").replace(/\D/g, "").slice(-1) || "0", 10);
+      root.append(h("section", { class: "section", "aria-labelledby": "res-std-h" },
+        h("div", { class: "section-head" }, h("div", null,
+          h("h2", { id: "res-std-h" }, "Real answers at every band"),
+          h("p", { class: "muted small" }, "Student answers from past HSC exams that NESA chose to show each band, from Band 1/2 to Band 5/6. Put a top answer next to a middle one to see what lifts the mark."))),
+        h("ul", { class: "res-list res-groups" }, groups.map((g) => h("li", { class: "res-item" },
+          h("span", { class: "res-title-plain" }, g.name),
+          h("span", { class: "res-bands" }, g.items.slice().sort((a, b) => bandOrder(a.band) - bandOrder(b.band) || (a.title < b.title ? -1 : 1)).map((it) => {
+            const label = it.band ? it.title.split(": ").slice(1).join(": ").replace(/, sample 1$/, "") : it.title.split(": ").slice(1).join(": ") || "Answer";
+            return extLink(it.url, label, "chip quiet res-band", `${g.name}, ${fileLabel(it)}, opens in a new tab`);
+          })))))));
+    }
+
+    // RBA Education, grouped by type
+    const rba = of("rba");
+    if (rba.length) {
+      const kinds = [...new Set(rba.map((i) => i.kind))];
+      const order = ["Explainer", "In a Nutshell", "Snapshot", "Interactive", "Chart pack", "Student event"];
+      kinds.sort((a, b) => (order.indexOf(a) + 99) % 99 - (order.indexOf(b) + 99) % 99);
+      const plural = { "In a Nutshell": "In a Nutshell guides", "Chart pack": "Chart pack", "Student event": "Student events" };
+      root.append(h("section", { class: "section", "aria-labelledby": "res-rba-h" },
+        h("div", { class: "section-head" }, h("div", null,
+          h("h2", { id: "res-rba-h" }, "Study guides from the Reserve Bank"),
+          h("p", { class: "muted small" }, "Short, plain-English guides from the RBA's education team. Tap a dot point to see where it fits in the syllabus."))),
+        kinds.map((k) => h("div", { class: "res-kind" },
+          h("h3", null, plural[k] || k + "s"),
+          h("ul", { class: "res-list" }, rba.filter((i) => i.kind === k).map((it) => h("li", { class: "res-item" },
+            h("div", null, extLink(it.url, it.title, "res-title", `(${fileLabel(it)}, opens in a new tab)`), newChip(it)),
+            it.desc && h("p", { class: "res-desc" }, it.desc),
+            h("span", { class: "res-meta" },
+              h("span", null, fileLabel(it)),
+              it.pdf && extLink(it.pdf, "PDF", "res-file", `copy of ${it.title}, opens in a new tab`),
+              dpChips(it.dotpoints)))))))));
+    }
+
+    if (!items.length) root.append(h("p", { class: "empty" }, "The resources list hasn't loaded. Try again in a moment."));
+
+    root.append(h("p", { class: "small muted res-foot" },
+      `${items.length} resources from NESA and the Reserve Bank of Australia. Checked every day; the list last changed ${RES.updated ? L.fmtDate(RES.updated) : "recently"}. `,
+      "Dotpoint isn't affiliated with NESA or the RBA, and doesn't host their files. Trial papers from schools aren't listed, because schools don't publish them openly."));
   }
 
   function renderDrills() {
