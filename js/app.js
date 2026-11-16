@@ -1277,9 +1277,14 @@
     const x = (i) => pad + (i / Math.max(1, pts.length - 1)) * (W - pad * 2);
     const y = (v) => H - pad - ((v - min) / span) * (H - pad * 2);
     const d = pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p[1]).toFixed(1)}`).join("");
-    return s("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", "aria-hidden": "true", focusable: "false" },
-      s("path", { d, class: "spark", "vector-effect": "non-scaling-stroke" }),
-      s("circle", { cx: x(pts.length - 1), cy: y(pts[pts.length - 1][1]), r: 2.6, class: "spark-end" }));
+    // The line stretches to fit its card, so the end dot sits on top as its own element and stays round.
+    const dot = h("span", { class: "spark-end" });
+    dot.style.left = `${((x(pts.length - 1) / W) * 100).toFixed(2)}%`;
+    dot.style.top = `${((y(pts[pts.length - 1][1]) / H) * 100).toFixed(2)}%`;
+    return h("span", { class: "spark-wrap", "aria-hidden": "true" },
+      s("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", focusable: "false" },
+        s("path", { d, class: "spark", "vector-effect": "non-scaling-stroke" })),
+      dot);
   }
 
   function renderStats() {

@@ -255,7 +255,7 @@ h1, h2, .ev, .fa, .dp { scroll-margin-top: 84px; }
 #view-today .tile-value { font-size: 1.75rem; }
 #view-today .home-tiles { grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); }
 .tile-meta { font-size: var(--fs-sm); color: var(--muted); display: flex; justify-content: space-between; gap: 0 8px; flex-wrap: wrap; }
-.tile svg { width: 100%; height: 30px; margin-top: 8px; }
+.tile .spark-wrap { height: 30px; margin-top: 8px; }
 .chg { font-weight: 600; color: var(--ink); }
 @media (max-width: 560px) { .tile { padding: 12px; } #view-today .tile-value { font-size: var(--fs-lg); } }
 
@@ -267,7 +267,7 @@ h1, h2, .ev, .fa, .dp { scroll-margin-top: 84px; }
 .daily-item { padding: 14px 16px 12px; display: grid; gap: 2px; min-width: 0; box-shadow: -1px 0 0 var(--rule), 0 -1px 0 var(--rule); }
 .daily-value { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .daily-meta { display: grid; font-size: var(--fs-sm); color: var(--muted); }
-.daily-item svg { width: 100%; height: 24px; margin-top: 6px; }
+.daily-item .spark-wrap { height: 24px; margin-top: 6px; }
 @media (max-width: 420px) { .daily-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } .daily-item { padding: 12px; } .daily-value { font-size: var(--fs-lg); } }
 
 .suggest { max-width: 70ch; }
@@ -526,10 +526,12 @@ dialog.sheet::backdrop { background: rgba(18, 24, 21, 0.24); }
 .band-label { fill: var(--ink); font-family: var(--font-body); font-size: 12px; font-weight: 600; }
 .end-dot { fill: var(--hl); stroke: var(--ink); stroke-width: 2; transform-box: fill-box; transform-origin: center; }
 .hover-line { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; fill: none; }
-.hover-dot { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+.hover-dot { fill: var(--hl); stroke: var(--ink); stroke-width: 2; }
 .hit { fill: transparent; stroke: none; cursor: crosshair; }
 .spark { stroke: var(--muted); stroke-width: 1.5; fill: none; stroke-linejoin: round; stroke-linecap: round; }
-.spark-end { fill: var(--ink); stroke: none; }
+.spark-wrap { position: relative; display: block; width: 100%; }
+.spark-wrap svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.spark-end { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: var(--hl); box-shadow: 0 0 0 1.5px var(--ink); transform: translate(-50%, -50%); }
 .tooltip {
   position: absolute; pointer-events: none; background: var(--ink); color: var(--paper);
   font-size: var(--fs-sm); font-weight: 600; padding: 5px 10px; border-radius: 6px; white-space: nowrap;
