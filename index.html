@@ -692,7 +692,7 @@ input[type="search"].field::-webkit-search-decoration { -webkit-appearance: none
   .source .link-btn { margin-left: 0; }
 }
 
-/* ---------- essay feedback ---------- */
+/* ---------- essay checker ---------- */
 .essay-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); gap: clamp(32px, 4vw, 72px); align-items: start; }
 .essay-form { display: grid; gap: 10px; }
 .essay-form .sublabel + .field { margin-bottom: 2px; }
@@ -704,45 +704,33 @@ input[type="search"].field::-webkit-search-decoration { -webkit-appearance: none
 .form-msg { font-weight: 600; color: var(--bad); }
 .form-msg:empty { display: none; }
 .form-msg:focus { outline: none; }
-.marking { display: grid; gap: 12px; }
-.marking p:first-of-type { max-width: 70ch; }
-.essay-history { display: grid; gap: 12px; position: sticky; top: 84px; }
-.essay-history h2 { font-size: var(--fs-md); }
-/* beside the form, "Past feedback" lines up with "Question" inside the form's box (its padding plus border) */
-@media (min-width: 1001px) { .essay-layout > .essay-history { padding-top: 23px; } }
-.essay-history .mini-ev button { font-size: var(--fs-sm); }
-.essay-result { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px); gap: clamp(32px, 4vw, 72px); align-items: start; }
-.essay-main, .essay-side { gap: 28px; }
-.essay-side { position: sticky; top: 84px; }
-.essay-main .use { background: var(--hl-soft); border-left: 4px solid var(--hl); border-radius: 0 var(--r-sm) var(--r-sm) 0; padding: 12px 16px; }
-.view-head .back { justify-self: start; margin-left: -8px; }
-.score { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 28px; align-items: center; }
-.score-mark { font-family: var(--font-display); line-height: 0.9; letter-spacing: -0.05em; white-space: nowrap; }
-.score-n { font-size: clamp(4rem, 3rem + 4vw, 6rem); font-weight: 800; font-variant-numeric: tabular-nums; }
-.score-of { font-size: 1.75rem; font-weight: 600; color: var(--muted); letter-spacing: -0.02em; }
-.score-text { display: grid; gap: 8px; max-width: 62ch; }
-.score-band { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 700; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
-.score-delta { font-family: var(--font-body); font-size: var(--fs-sm); font-weight: 600; background: var(--hl); color: var(--on-hl); padding: 1px 8px; border-radius: 4px; }
-.fixes { margin: 0; padding-left: 1.6em; display: grid; gap: 14px; }
-.fixes li { padding-left: 4px; }
-.fixes li::marker { font-family: var(--font-display); font-weight: 700; }
-.fixes p + p { margin-top: 4px; max-width: 70ch; }
-.criteria { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--rule); }
-.criteria li { padding: 14px 0; border-bottom: 1px solid var(--rule); display: grid; gap: 4px; }
-.crit-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
-.crit-head b { min-width: 11rem; }
-.meter { display: inline-flex; gap: 4px; }
+/* the checker's results sit beside the form: "Your checks" lines up with "Question" inside the form's box */
+.essay-results { display: grid; gap: 24px; align-content: start; }
+.essay-results > h2 { font-size: var(--fs-lg); }
+@media (min-width: 1001px) { .essay-layout > .essay-results { padding-top: 23px; } }
+.stale { font-weight: 600; color: var(--warn); }
+.check-group { display: grid; gap: 10px; padding-top: 18px; border-top: 1px solid var(--rule); }
+.check-group h3 { font-size: var(--fs-md); }
+.checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.checklist li { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 10px; align-items: start; font-size: var(--fs-sm); }
+.checklist .mark { margin-top: 4px; }
+.mark.m-fix { border-color: var(--bad); }
 .checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
-.checks li { display: grid; gap: 6px; padding-bottom: 14px; border-bottom: 1px solid var(--rule); justify-items: start; }
-.check-quote { font-style: italic; }
+.checks li { display: grid; gap: 6px; padding-bottom: 14px; border-bottom: 1px solid var(--rule); justify-items: start; font-size: var(--fs-sm); }
+.checks li:last-child { border-bottom: 0; padding-bottom: 0; }
+.check-quote { font-style: italic; color: var(--muted); }
+.chip.fig-current, .chip.fig-historical { background: var(--good-soft); color: var(--good); }
+.chip.fig-outdated, .chip.fig-unmatched { background: var(--bad-soft); color: var(--bad); }
+.chip.fig-untracked { background: var(--soft); color: var(--muted); }
+.chip.term-used { background: var(--hl-soft); box-shadow: inset 0 0 0 1px var(--hl); }
+.cite-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.cite-list li { display: grid; gap: 2px; padding-left: 14px; border-left: 3px solid var(--hl); font-size: var(--fs-sm); }
+.cite-list .link-btn { justify-self: start; }
 @media (max-width: 1000px) {
-  .essay-layout, .essay-result { grid-template-columns: minmax(0, 1fr); }
-  .essay-history, .essay-side { position: static; }
+  .essay-layout { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 560px) {
-  .score { grid-template-columns: minmax(0, 1fr); }
   .essay-text { min-height: 320px; }
-  .crit-head b { min-width: 0; width: 100%; }
 }
 
 /* ---------- footer, dialog, toast ---------- */
@@ -901,7 +889,7 @@ textarea.field { min-height: 100px; resize: vertical; }
       <dl class="set-counts" id="set-counts"></dl>
       <button type="button" class="hold-btn" id="reset-hold" aria-describedby="reset-hint"><span class="hold-label">Hold to reset all progress</span><span class="hold-fill" aria-hidden="true"><span class="hold-label">Hold to reset all progress</span></span></button>
       <p class="small" id="reset-status" role="status"></p>
-      <p class="small muted" id="reset-hint">Clears your dot point ratings, flashcards, study days, the examples you've opened and your essays. Your theme stays. This can't be undone.</p>
+      <p class="small muted" id="reset-hint">Clears your dot point ratings, flashcards, study days, the examples you've opened and your essay draft. Your theme stays. This can't be undone.</p>
     </section>
   </div>
 </dialog>

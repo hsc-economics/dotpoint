@@ -10,10 +10,10 @@ Business Studies come after Economics is right.
 |---|---|---|
 | Today | `#today` | One "do this now" action, your dot point map, latest numbers, newest evidence |
 | Skills | `#skills` | Skill tree: 7 branches, 39 dot points, mastery levels Familiar → Proficient → Mastered; list view too |
-| Examples | `#evidence` | Dated, sourced real-world examples, each with a verified quote; linked to the statistics |
+| Examples | `#evidence` | Dated, sourced real-world examples, each with a verified quote; linked to the statistics. Also lists news reports collected automatically into `data/news-archive.js` |
 | Stats | `#stats` | 20 indicators from RBA/ABS tables (10 headline figures shown on Home), charts, tables, ready-to-cite sentences, cash rate history |
 | Drills | `#drills` | Spaced-repetition flashcards built from evidence, key terms and the latest statistics |
-| Essays | `#essay` | Claude marks a practice essay out of 20 on five criteria, checks its statistics against `data/stats.js` and suggests Dotpoint examples. Runs on the viewer's own Claude account, so it only works on the published page |
+| Essays | `#essay` | Essay checker, no AI: checks each figure against the RBA and ABS history in `data/stats.js`, what the question's verb asks for, structure and key terms, and suggests statistics and examples to add. Runs in the browser; never gives a mark |
 
 ## Folder layout
 
@@ -71,7 +71,7 @@ Suggestions: people use the "Suggest an example or statistic" form (links appear
 Read the issue, fix anything you need to, then add the **approved** label. `add-submission.yml` turns
 it into a card, tests it, publishes it and closes the issue, or comments with what to fix.
 
-Off Claude, essay marking and account sync don't work (they need Claude); progress is saved in the browser.
+Everything works off Claude. Only account sync needs it; elsewhere progress is saved in the browser.
 
 ## Rules for evidence cards
 

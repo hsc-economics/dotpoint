@@ -386,7 +386,7 @@
 
   const HOLD_LABEL = "Hold to reset all progress";
   const COUNT_LABELS = [["dots", "dot point rated", "dot points rated"], ["cards", "flashcard practised", "flashcards practised"],
-    ["days", "study day", "study days"], ["essays", "essay marked", "essays marked"]];
+    ["days", "study day", "study days"], ["examples", "example opened", "examples opened"]];
   let resetJustDone = false;
 
   function holdLabel(text) {
@@ -396,7 +396,7 @@
   function renderSettings() {
     const choice = themeChoice();
     for (const b of $("theme-seg").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.choice === choice));
-    const c = L.progressCounts(progress, Essays.list.length);
+    const c = L.progressCounts(progress);
     $("set-counts").replaceChildren(...COUNT_LABELS.map(([k, one, many]) => h("div", { class: "set-count" },
       h("dt", null, c[k] === 1 ? one : many), h("dd", { "data-from": c[k] }, String(c[k])))));
     $("set-where").textContent = Sync.ref
@@ -537,8 +537,8 @@
     ui.openEv = {};
     clearTimeout(draftTimer);
     try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* storage blocked */ }
-    Object.assign(ui.essay, { mode: "write", draft: emptyDraft(), open: null, busy: null, msg: "" });
-    await Essays.clear();
+    Object.assign(ui.essay, { draft: emptyDraft(), result: null, checked: null, msg: "" });
+    await clearOldEssays();
     renderAll();
     countDown();
     toast("All progress reset");
@@ -832,7 +832,6 @@
   function studyBand() {
     const dueReviews = L.dueQueue(deck, progress.cards, TODAY).filter((c) => progress.cards[c.id]).length;
     const dueAll = L.dueQueue(deck, progress.cards, TODAY).length;
-    const lastEssay = Essays.list[0];
     const allSt = SY.focusAreas.flatMap((fa) => fa.dotpoints.map((dp) => status(dp.id)));
     const nConf = allSt.filter((x) => x === "confident").length;
     const nShaky = allSt.filter((x) => x === "shaky").length;
@@ -849,11 +848,9 @@
             dueReviews ? "Review due cards" : "Start 10 new cards")),
         h("section", { class: "panel revise", "aria-labelledby": "h-essay-home" },
           h("div", null,
-            h("h3", { id: "h-essay-home" }, "Essay feedback"),
-            h("p", { class: "muted small" }, lastEssay
-              ? `Your last essay was marked ${lastEssay.result.mark}/${lastEssay.result.outOf}.`
-              : "Get a practice essay marked, with every statistic checked against the latest data.")),
-          h("button", { type: "button", class: "btn", onclick: () => go("essay") }, lastEssay ? "Mark another essay" : "Mark an essay"))),
+            h("h3", { id: "h-essay-home" }, "Essay checker"),
+            h("p", { class: "muted small" }, "Check a practice essay's figures, structure and key terms in seconds.")),
+          h("button", { type: "button", class: "btn", onclick: () => go("essay") }, "Check an essay"))),
       h("section", { class: "section", "aria-labelledby": "h-dir" },
         h("div", { class: "section-head" },
           h("div", null,
@@ -1867,14 +1864,14 @@
   // Buttons press on Space's key-up, so stop that too.
   document.addEventListener("keyup", (e) => { if (e.key === " " && drillKeysOn(e)) e.preventDefault(); });
 
-  // ---------- ESSAY FEEDBACK ----------
-  // Claude marks a practice essay on the student's own Claude account. The draft stays in this
-  // browser; marked essays go to the student's private account space (or this browser without one).
+  // ---------- ESSAY CHECKER ----------
+  // Instant checks on a practice essay, run in this browser with no AI: figures against the latest RBA
+  // and ABS data, what the question's verb asks for, structure, key terms, and evidence to add. The
+  // draft stays in this browser and nothing is sent anywhere. It never gives a mark or rewrites anything.
 
   const DRAFT_KEY = "dotpoint.essayDraft.v1";
-  const LOCAL_ESSAYS = "dotpoint.essays.v1";
-  const UNAVAILABLE_CODES = ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"];
-  const CHECK_LABEL = { outdated: "Out of date", incorrect: "Incorrect", unsourced: "No period or source" };
+  const OLD_ESSAYS = "dotpoint.essays.v1"; // essays marked by the old Claude marking; a reset still clears them
+  const FIG_LABEL = { current: "Latest figure", historical: "Older figure, dated", outdated: "Out of date", unmatched: "Check this figure", untracked: "Before our data" };
 
   function emptyDraft() { return { qid: QS.length ? QS[0].id : "custom", custom: "", text: "" }; }
 
@@ -1895,81 +1892,23 @@
     draftTimer = setTimeout(() => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(ui.essay.draft)); } catch (e) { /* storage blocked */ } }, 400);
   }
 
-  ui.essay = { mode: "write", draft: loadDraft(), open: null, busy: null, msg: "", unavailable: false };
+  ui.essay = { draft: loadDraft(), result: null, checked: null, msg: "" };
 
-  const Essays = {
-    list: [], where: "browser",
-
-    col() { return Sync.db && Sync.uid ? Sync.db.collection(`data/users/${Sync.uid}`) : null; },
-
-    async load() {
-      const col = this.col();
-      if (col) {
-        try {
-          const snap = await col.where("kind", "==", "essay").orderBy("at", "desc").limit(20).get();
-          this.list = snap.docs.map((d) => ({ ...d.data(), id: d.id })).filter(validEssay);
-          this.where = "account";
-          return;
-        } catch (e) { /* fall back to this browser */ }
-      }
-      try { this.list = JSON.parse(localStorage.getItem(LOCAL_ESSAYS) || "[]").filter(validEssay); } catch (e) { this.list = []; }
-      this.where = "browser";
-    },
-
-    async save(rec) {
-      this.list = [rec, ...this.list.filter((r) => r.id !== rec.id)].slice(0, 20);
-      const col = this.col();
-      if (col && this.where === "account") {
-        try { await col.doc(rec.id).set(rec); return; } catch (e) { this.where = "browser"; }
-      }
-      try { localStorage.setItem(LOCAL_ESSAYS, JSON.stringify(this.list.slice(0, 5))); } catch (e) { /* storage blocked: keep in memory */ }
-    },
-
-    async clear() {
-      const col = this.col();
-      if (col && this.where === "account") {
-        try {
-          const snap = await col.where("kind", "==", "essay").get();
-          await Promise.all(snap.docs.map((d) => col.doc(d.id).delete()));
-        } catch (e) { /* the account copy stays; this browser is still cleared */ }
-      }
-      this.list = [];
-      try { localStorage.removeItem(LOCAL_ESSAYS); } catch (e) { /* storage blocked */ }
-    },
-  };
-
-  function validEssay(r) {
-    return r && typeof r === "object" && typeof r.question === "string" && typeof r.essay === "string" &&
-      r.result && Number.isFinite(r.result.mark) && Array.isArray(r.result.criteria);
-  }
-
-  let samplePromise = null;
-  function getSample() {
-    if (!window.claude || typeof window.claude.use !== "function") return Promise.resolve(null);
-    if (!samplePromise) samplePromise = Promise.resolve(window.claude.use("sample")).catch(() => null);
-    return samplePromise;
-  }
-
-  function sampleErrorText(code) {
-    if (code === "not_granted") return "Dotpoint wasn't given permission to use Claude, so it can't mark essays on this visit. Reload the page to be asked again.";
-    if (UNAVAILABLE_CODES.includes(code)) return "Essay feedback isn't available for your Claude account here.";
-    if (code === "rate_limited") return "You've reached a Claude usage limit. Your essay is saved as a draft, so try again later.";
-    if (code === "session_expired") return "Your Claude sign-in has expired. Sign in again, then mark your essay.";
-    if (code === "prompt_too_large") return "This response is too long to mark in one go. Trim it and try again.";
-    if (code === "refused" || code === "empty_completion") return "Claude couldn't mark this response. Check that it answers an economics question, then try again.";
-    if (code === "invalid_json") return "The feedback came back in a form Dotpoint couldn't read. Try marking it again.";
-    return "Marking was interrupted before it finished. Try again.";
+  // Essays marked by the old Claude marking, in this browser or the account copy.
+  async function clearOldEssays() {
+    try { localStorage.removeItem(OLD_ESSAYS); } catch (e) { /* storage blocked */ }
+    const col = Sync.db && Sync.uid ? Sync.db.collection(`data/users/${Sync.uid}`) : null;
+    if (!col) return;
+    try {
+      const snap = await col.where("kind", "==", "essay").get();
+      await Promise.all(snap.docs.map((d) => col.doc(d.id).delete()));
+    } catch (e) { /* nothing there, or the account copy is out of reach */ }
   }
 
   function questionText(d) {
     if (d.qid === "custom") return d.custom.trim();
     const q = QS.find((x) => x.id === d.qid);
     return q ? q.text : "";
-  }
-
-  function isoOf(ts) {
-    const d = new Date(ts);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
   function focusIn(view, id) {
@@ -1981,27 +1920,20 @@
   function renderEssay() {
     const root = $("view-essay");
     root.replaceChildren();
-    const E = ui.essay;
-    if (E.mode === "result") {
-      const rec = Essays.list.find((r) => r.id === E.open);
-      if (rec) return renderEssayResult(root, rec);
-      E.mode = "write";
-    }
-    root.append(viewHead("essay", "Essay feedback",
-      "Get a practice essay marked on five criteria, with every statistic checked against the latest data and the Dotpoint examples that would strengthen it. The feedback tells you what to fix. It never rewrites your essay."));
-    root.append(h("div", { class: "essay-layout" }, E.mode === "marking" ? markingPanel() : essayForm(), essayHistory()));
+    root.append(viewHead("essay", "Essay checker",
+      "Paste a practice essay to check it in seconds: whether your figures are the latest, whether you've done what the question's verb asks, your structure and key terms, and evidence you could add. It runs in your browser with no AI, so nothing is sent anywhere. It never gives a mark or rewrites your work."));
+    root.append(h("div", { class: "essay-layout" }, essayForm(), essayResults()));
   }
 
   function verbNote(q) {
     const verb = L.verbOf(q);
     if (verb) return [h("b", null, verb[0].toUpperCase() + verb.slice(1)), ` means: ${L.VERBS[verb].charAt(0).toLowerCase()}${L.VERBS[verb].slice(1)}`];
-    return q.trim() ? "Questions usually start with a key verb such as assess, evaluate or analyse. The feedback checks that you answered it." : "";
+    return q.trim() ? "Questions usually start with a key verb such as assess, evaluate or analyse. The checker looks at whether you've done what it asks." : "";
   }
 
   function countText(text) {
     const w = L.wordCount(text), p = L.paragraphs(text).length;
-    const base = `${w} word${w === 1 ? "" : "s"}, ${p} paragraph${p === 1 ? "" : "s"}`;
-    return w < L.ESSAY_MIN_WORDS ? `${base}. At least ${L.ESSAY_MIN_WORDS} words are needed for marking.` : base;
+    return `${w} word${w === 1 ? "" : "s"}, ${p} paragraph${p === 1 ? "" : "s"}`;
   }
 
   function essayForm() {
@@ -2028,10 +1960,14 @@
     text.addEventListener("input", () => {
       d.text = text.value; saveDraft();
       clearTimeout(countTimer);
-      countTimer = setTimeout(() => { counter.textContent = countText(d.text); }, 250);
+      countTimer = setTimeout(() => {
+        counter.textContent = countText(d.text);
+        const stale = $("checks-stale");
+        if (stale) stale.hidden = d.text === E.checked;
+      }, 250);
     });
 
-    return h("form", { class: "panel essay-form", novalidate: true, onsubmit: (ev) => { ev.preventDefault(); markEssay(); } },
+    return h("form", { class: "panel essay-form", novalidate: true, onsubmit: (ev) => { ev.preventDefault(); runCheck(); } },
       h("label", { for: "essay-q", class: "sublabel" }, "Question"),
       sel,
       custom && h("label", { for: "essay-custom", class: "sr-only" }, "Your question"),
@@ -2042,195 +1978,104 @@
       counter,
       h("p", { class: "form-msg", id: "essay-msg", role: "alert", tabindex: "-1" }, E.msg),
       h("div", { class: "btn-row" },
-        h("button", { type: "submit", class: "btn primary", disabled: E.unavailable ? true : null }, "Mark my essay"),
-        h("span", { class: "small muted" }, `Marked out of ${L.ESSAY_MARKS}. Uses your own Claude usage and takes about a minute.`)),
-      h("p", { class: "small muted" }, Essays.where === "account"
-        ? "Your draft stays in this browser. Marked essays are saved to your account, where only you can see them."
-        : "Your draft and marked essays are saved in this browser."));
+        h("button", { type: "submit", class: "btn primary" }, "Check my essay"),
+        h("span", { class: "small muted" }, "Instant, in your browser. Your draft is saved here as you type.")));
   }
 
-  function markingPanel() {
-    const B = ui.essay.busy;
-    const secs = Math.round((Date.now() - B.started) / 1000);
-    return h("section", { class: "panel marking", "aria-labelledby": "h-marking" },
-      h("h2", { id: "h-marking" }, "Marking your essay"),
-      h("p", { class: "muted" }, B.question),
-      h("p", { id: "marking-status", role: "status" }, B.streamed
-        ? "Writing your feedback…"
-        : "Reading your essay against the five criteria and the latest data. This usually takes about a minute. If Claude asks for permission, choose Allow."),
-      h("p", { class: "small muted mono", id: "marking-time" }, `${secs} seconds`),
-      h("div", { class: "btn-row" },
-        h("button", { type: "button", class: "btn", id: "marking-stop", onclick: () => B.ctl.abort() }, "Stop marking")));
-  }
-
-  function essayHistory() {
-    const list = Essays.list;
-    return h("aside", { class: "essay-history", "aria-labelledby": "h-essay-hist" },
-      h("h2", { id: "h-essay-hist" }, "Past feedback"),
-      list.length
-        ? h("ul", { class: "mini-ev" }, list.map((r) => h("li", null,
-          h("button", { type: "button", onclick: () => openEssay(r.id) },
-            h("span", null, r.question, meta("dp-counts", L.fmtDate(isoOf(r.at)), `${L.wordCount(r.essay)} words`)),
-            h("span", { class: "mono" }, `${r.result.mark}/${r.result.outOf}`)))))
-        : h("p", { class: "small muted" }, "Essays you get marked appear here, so you can watch your marks change between drafts."));
-  }
-
-  function openEssay(id) {
-    ui.essay.mode = "result";
-    ui.essay.open = id;
-    renderEssay();
-    window.scrollTo(0, 0);
-    focusIn("essay", "h-essay");
-  }
-
-  async function markEssay() {
+  function runCheck() {
     const E = ui.essay, d = E.draft;
-    if (E.busy) return;
     const question = questionText(d);
     const essay = d.text.trim();
     const words = L.wordCount(essay);
     const fail = (msg, id) => { E.msg = msg; renderEssay(); focusIn("essay", id || "essay-msg"); };
     if (question.length < 15) return fail("Type the question you're answering first.", d.qid === "custom" ? "essay-custom" : "essay-q");
-    if (words < L.ESSAY_MIN_WORDS) return fail(`Your response needs at least ${L.ESSAY_MIN_WORDS} words to be marked. It has ${words}.`);
-    if (essay.length > L.ESSAY_MAX_CHARS) return fail("This response is too long to mark in one go. Trim it to about 3,500 words.");
-
-    const sample = await getSample();
-    if (!sample) {
-      E.unavailable = true;
-      return fail("Essay feedback works on the published Dotpoint page on claude.ai, when you're signed in to Claude.");
-    }
-
-    const ctx = { question, essay, syllabus: SY, evidence: EV, stats: ST, today: TODAY_ISO };
-    const ctl = new AbortController();
-    E.mode = "marking"; E.msg = "";
-    E.busy = { ctl, started: Date.now(), question, streamed: false };
+    if (words < L.ESSAY_MIN_WORDS) return fail(`Write at least ${L.ESSAY_MIN_WORDS} words to check. Your response has ${words}.`, "essay-text");
+    if (essay.length > L.ESSAY_MAX_CHARS) return fail("This response is too long to check in one go. Trim it to about 3,500 words.", "essay-text");
+    const listed = d.qid !== "custom" ? (QS.find((x) => x.id === d.qid) || {}).dotpoints : null;
+    E.result = L.checkEssay({ question, listedDotpoints: listed, essay, syllabus: SY, evidence: EV, stats: ST });
+    E.checked = d.text;
+    E.msg = "";
     renderEssay();
-    focusIn("essay", "marking-stop");
-    const tick = setInterval(() => {
-      const t = $("marking-time");
-      if (t && E.busy) t.textContent = `${Math.round((Date.now() - E.busy.started) / 1000)} seconds`;
-    }, 1000);
-    try {
-      const raw = await sample.json(L.essayPrompt(ctx), {
-        modelTier: "complex", signal: ctl.signal,
-        onText: () => {
-          if (E.busy && !E.busy.streamed) {
-            E.busy.streamed = true;
-            const st = $("marking-status");
-            if (st) st.textContent = "Writing your feedback…";
-          }
-        },
-      });
-      let result;
-      try { result = L.parseFeedback(raw, ctx); } catch (e) { throw { code: "invalid_json" }; }
-      const prev = Essays.list.find((r) => r.question === question);
-      const rec = { id: `essay-${Date.now()}`, kind: "essay", at: Date.now(), qid: d.qid, question, essay, result,
-        prevMark: prev ? prev.result.mark : null };
-      E.busy = null;
-      await Essays.save(rec);
-      openEssay(rec.id);
-    } catch (e) {
-      const code = e && e.code;
-      E.busy = null;
-      E.mode = "write";
-      if (UNAVAILABLE_CODES.includes(code)) E.unavailable = true;
-      E.msg = code === "cancelled" ? "Marking stopped. Your essay is still here." : sampleErrorText(code);
-      renderEssay();
-      focusIn("essay", "essay-msg");
-    } finally {
-      clearInterval(tick);
-      E.busy = null;
+    const head = $("h-checks");
+    if (head) {
+      if (narrowScreen()) head.scrollIntoView({ block: "start" });
+      head.focus({ preventScroll: true });
     }
   }
 
-  function levelMeter(level) {
-    return h("span", { class: "meter", role: "img", "aria-label": level ? `${L.LEVELS[level]}, ${level} of 4` : "Not judged" },
-      [1, 2, 3, 4].map((i) => mark(level && i <= level ? "confident" : "none")));
+  // One line of the checklist: a filled dot when it's done, a red ring when there's something to fix.
+  function checkItem(c) {
+    return h("li", { class: c.ok ? "ok" : "fix" },
+      h("span", { class: `mark ${c.ok ? "m-confident" : "m-fix"}`, "aria-hidden": "true" }),
+      h("span", null, h("span", { class: "sr-only" }, c.ok ? "Done: " : "To fix: "), c.text));
   }
 
-  function renderEssayResult(root, rec) {
-    const E = ui.essay, r = rec.result;
-    const delta = rec.prevMark === null || rec.prevMark === undefined ? null : r.mark - rec.prevMark;
-    root.append(h("div", { class: "view-head" },
-      h("button", { type: "button", class: "btn ghost small back", onclick: () => { E.mode = "write"; renderEssay(); focusIn("essay", "h-essay"); } }, "Back to essay feedback"),
-      h("h1", { id: "h-essay", tabindex: "-1" }, "Your feedback"),
-      h("p", null, rec.question)));
+  function figureText(f) {
+    const ind = indById[f.statId], name = ind.short.toLowerCase();
+    if (f.status === "current") return `Matches the latest ${name}: ${f.latest}.${f.dated ? "" : " Add the period it's for, as markers look for it."}`;
+    if (f.status === "historical") return `This was ${name} in ${f.then}. Fine for history; the latest is ${f.latest}.`;
+    if (f.status === "outdated") return `This was ${name} in ${f.then}, so it's out of date. The latest is ${f.latest}.`;
+    if (f.status === "untracked") return `Dotpoint's ${name} data starts in ${f.then}, so it can't check this one. Make sure it comes from the RBA, the ABS or another reliable source.`;
+    return `This doesn't match any ${name} figure in the RBA and ABS data. The latest is ${f.latest}. Check your source.`;
+  }
 
-    const main = h("div", { class: "section essay-main" });
-    const side = h("div", { class: "section essay-side" });
+  function essayResults() {
+    const E = ui.essay, r = E.result;
+    const box = h("section", { class: "essay-results", "aria-labelledby": "h-checks" },
+      h("h2", { id: "h-checks", tabindex: "-1" }, "Your checks"));
+    if (!r) {
+      box.append(h("p", { class: "small muted" }, "Press Check my essay and the results appear here: your figures against the latest RBA and ABS data, what the question's verb asks for, your structure and key terms, and evidence you could add."));
+      return box;
+    }
+    const fixes = r.figures.filter((f) => f.status === "outdated" || f.status === "unmatched").length;
+    box.append(
+      h("p", { class: "small stale", id: "checks-stale", hidden: E.draft.text === E.checked ? true : null }, "You've changed your essay since this check. Check it again to update these."),
+      h("p", { class: "small muted" }, `${r.words} words in ${r.paragraphs} paragraph${r.paragraphs === 1 ? "" : "s"}. ${r.figures.length
+        ? `${r.figures.length} figure${r.figures.length === 1 ? "" : "s"} checked${fixes ? `, ${fixes} to fix` : ", none to fix"}.`
+        : "No figures matched to the RBA and ABS data yet."}`));
 
-    main.append(h("section", { class: "panel score", "aria-label": "Estimated mark" },
-      h("p", { class: "score-mark" }, h("span", { class: "score-n" }, String(r.mark)), h("span", { class: "score-of" }, `/${r.outOf}`)),
-      h("div", { class: "score-text" },
-        h("p", { class: "score-band" }, `In the ${r.band} range`,
-          delta === null ? null : h("span", { class: "score-delta" }, delta > 0 ? `Up ${delta} on your last attempt` : delta < 0 ? `Down ${-delta} on your last attempt` : "Same as your last attempt")),
-        r.summary && h("p", null, r.summary),
-        h("p", { class: "small muted" }, `An estimate by Claude using Dotpoint's five criteria, not an official HSC mark. Marked ${L.fmtDate(isoOf(rec.at))}.`))));
+    box.append(h("section", { class: "check-group", "aria-labelledby": "h-figs" },
+      h("h3", { id: "h-figs" }, "Your figures"),
+      r.figures.length
+        ? h("ul", { class: "checks" }, r.figures.map((f) => h("li", null,
+          h("p", { class: "check-quote" }, `“${f.quote}”`),
+          h("p", null, h("span", { class: `chip fig-${f.status}` }, FIG_LABEL[f.status]), " ", figureText(f)),
+          h("button", { type: "button", class: "tag", onclick: () => { ui.statSel = f.statId; go("stats"); } },
+            h("b", null, L.fmtValue(indById[f.statId], L.latest(indById[f.statId])[1])), indById[f.statId].short))))
+        : h("p", { class: "small muted" }, "No percentages next to a statistic Dotpoint tracks, such as inflation, the cash rate or unemployment. Strong responses use several, each with its period.")));
 
-    if (r.nextStep) main.append(h("div", { class: "use" }, h("b", null, "Most important for your next draft: "), r.nextStep));
+    box.append(h("section", { class: "check-group", "aria-labelledby": "h-verb" },
+      h("h3", { id: "h-verb" }, "Answering the question"),
+      r.verb && h("p", { class: "small muted" }, h("b", null, r.verb[0].toUpperCase() + r.verb.slice(1)), ` means: ${L.VERBS[r.verb].charAt(0).toLowerCase()}${L.VERBS[r.verb].slice(1)}`),
+      h("ul", { class: "checklist" }, r.question.map(checkItem))));
 
-    if (r.improvements.length) {
-      main.append(h("section", { class: "section", "aria-labelledby": "h-fixes" },
-        h("h2", { id: "h-fixes" }, "Fix these first"),
-        h("ol", { class: "fixes" }, r.improvements.map((x) => h("li", null,
-          h("p", null, x.where && h("span", { class: "chip quiet" }, x.where), " ", h("b", null, x.issue)),
-          x.action && h("p", { class: "muted" }, x.action))))));
+    box.append(h("section", { class: "check-group", "aria-labelledby": "h-structure" },
+      h("h3", { id: "h-structure" }, "Structure"),
+      h("ul", { class: "checklist" }, r.structure.map(checkItem))));
+
+    if (r.terms.used.length || r.terms.missing.length) {
+      box.append(h("section", { class: "check-group", "aria-labelledby": "h-terms" },
+        h("h3", { id: "h-terms" }, "Key terms"),
+        h("p", { class: "small muted" }, `From ${L.andList(r.dotpoints.map((id) => dpIndex[id].short))}. You've used ${r.terms.used.length} of ${r.terms.used.length + r.terms.missing.length}.`),
+        h("div", { class: "tags" },
+          r.terms.used.map((t) => h("span", { class: "chip term-used" }, h("span", { class: "sr-only" }, "Used: "), t)),
+          r.terms.missing.map((t) => h("span", { class: "chip quiet" }, h("span", { class: "sr-only" }, "Not used yet: "), t)))));
     }
 
-    main.append(h("section", { class: "section", "aria-labelledby": "h-criteria" },
-      h("h2", { id: "h-criteria" }, "The five criteria"),
-      h("ul", { class: "criteria" }, r.criteria.map((c) => h("li", null,
-        h("div", { class: "crit-head" }, h("b", null, c.name), levelMeter(c.level), h("span", { class: "small muted" }, c.level ? L.LEVELS[c.level] : "")),
-        c.comment && h("p", { class: "muted" }, c.comment))))));
-
-    if (r.strengths.length) {
-      main.append(h("section", { class: "section", "aria-labelledby": "h-strengths" },
-        h("h2", { id: "h-strengths" }, "What's working"),
-        r.strengths.map((x) => h("figure", { class: "quote" }, h("blockquote", null, x.quote), x.why && h("figcaption", null, x.why)))));
+    if (r.addStats.length || r.addExamples.length) {
+      box.append(h("section", { class: "check-group", "aria-labelledby": "h-add" },
+        h("h3", { id: "h-add" }, "Evidence you could add"),
+        r.addStats.length > 0 && h("ul", { class: "cite-list" }, r.addStats.map((id) => h("li", null,
+          h("p", null, L.citationSentence(indById[id])),
+          h("button", { type: "button", class: "link-btn small", onclick: () => { ui.statSel = id; go("stats"); } }, `See the ${indById[id].short.toLowerCase()} chart`)))),
+        r.addExamples.length > 0 && h("ul", { class: "mini-ev" }, r.addExamples.map((id) => {
+          const e = evById[id];
+          return h("li", null, h("button", { type: "button", onclick: () => openEvidence(e.id) },
+            h("span", null, e.title, meta("dp-counts", e.type, L.fmtDate(e.date))),
+            h("span", { class: "mono" }, e.keyFigure)));
+        }))));
     }
-
-    side.append(h("section", { class: "section", "aria-labelledby": "h-checks" },
-      h("h2", { id: "h-checks" }, "Check your numbers"),
-      r.dataChecks.length
-        ? h("ul", { class: "checks" }, r.dataChecks.map((x) => h("li", null,
-          h("p", { class: "check-quote" }, `“${x.quote}”`),
-          h("p", null, h("span", { class: "chip developing" }, CHECK_LABEL[x.status]), " ", x.latest),
-          x.statId && indById[x.statId] && h("button", { type: "button", class: "tag", onclick: () => { ui.statSel = x.statId; go("stats"); } },
-            h("b", null, L.fmtValue(indById[x.statId], L.latest(indById[x.statId])[1])), indById[x.statId].short))))
-        : h("p", { class: "small muted" }, "No out-of-date, incorrect or unsourced figures found.")));
-
-    if (r.examples.length || r.stats.length) {
-      side.append(h("section", { class: "section", "aria-labelledby": "h-add" },
-        h("h2", { id: "h-add" }, "Evidence that would strengthen it"),
-        h("ul", { class: "mini-ev" },
-          r.examples.map((x) => { const e = evById[x.id]; return h("li", null,
-            h("button", { type: "button", onclick: () => openEvidence(e.id) },
-              h("span", null, e.title, h("span", { class: "dp-counts" }, h("span", null, x.why || `${e.type}, ${L.fmtDate(e.date)}`))),
-              h("span", { class: "mono" }, e.keyFigure))); }),
-          r.stats.map((x) => { const i = indById[x.id]; return h("li", null,
-            h("button", { type: "button", onclick: () => { ui.statSel = i.id; go("stats"); } },
-              h("span", null, i.label, h("span", { class: "dp-counts" }, h("span", null, x.why || L.periodOf(i)))),
-              h("span", { class: "mono" }, L.fmtValue(i, L.latest(i)[1])))); }))));
-    }
-
-    if (r.dotpoints.length) {
-      side.append(h("section", { class: "section", "aria-labelledby": "h-essay-dps" },
-        h("h2", { id: "h-essay-dps" }, "Dot points this question draws on"),
-        h("div", { class: "tags" }, r.dotpoints.map((id) => h("button", { type: "button", class: "tag", onclick: () => openDotpoint(id) }, mark(status(id)), dpIndex[id].short || dpIndex[id].text)))));
-    }
-
-    main.append(h("div", { class: "btn-row" },
-      h("button", { type: "button", class: "btn primary", onclick: () => {
-        E.draft = { qid: rec.qid === "custom" || QS.some((q) => q.id === rec.qid) ? rec.qid : "custom", custom: rec.qid === "custom" ? rec.question : "", text: rec.essay };
-        if (E.draft.qid === "custom" && !E.draft.custom) E.draft.custom = rec.question;
-        saveDraft(); E.mode = "write"; E.msg = ""; renderEssay(); focusIn("essay", "essay-text");
-      } }, "Edit and mark again"),
-      h("button", { type: "button", class: "btn", onclick: () => {
-        E.draft = { ...E.draft, text: "" };
-        saveDraft(); E.mode = "write"; E.msg = ""; renderEssay(); focusIn("essay", "essay-text");
-      } }, "Start a new essay")));
-
-    root.append(h("div", { class: "essay-result" }, main, side));
+    return box;
   }
 
   // ---------- start ----------
@@ -2280,7 +2125,7 @@
     window.addEventListener("hashchange", fromLocation);
     updateBadge();
     introDot();
-    Sync.init().then(() => Essays.load()).then(() => { if (ui.view === "essay" && ui.essay.mode === "write") renderEssay(); });
+    Sync.init();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

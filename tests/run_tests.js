@@ -396,39 +396,57 @@ test("essay: word count and paragraphs", () => {
   eq(L.paragraphs("One.\n\nTwo\nstill two.\n\n\nThree.").length, 3);
   eq(L.paragraphs("One.\nTwo.\nThree.").length, 3);
 });
-test("essay: bands for a 20-mark response", () => {
-  eq([20, 17, 16, 13, 12, 9, 8, 5, 4, 1, 0].map(L.bandFor), ["17–20", "17–20", "13–16", "13–16", "9–12", "9–12", "5–8", "5–8", "1–4", "1–4", "0"]);
+// The checker reads figures against the statistics' own history, so these tests build sentences from it.
+const cpi = ST.indicators.find((i) => i.id === "cpi");
+const [cpiNowIso, cpiNow] = cpi.points[cpi.points.length - 1];
+const cpiOld = cpi.points.slice(0, -1).reverse().find(([, v]) => Math.abs(v - cpiNow) > 0.3 && !cpi.points.slice(-1).some(([, w]) => w === v));
+const cash = ST.indicators.find((i) => i.id === "cash-rate");
+const cashNow = cash.points[cash.points.length - 1][1];
+test("essay checker: figures are matched to the right statistic and dated", () => {
+  const f = L.checkFigures(
+    `Headline inflation was ${cpiNow}% in ${cpiNowIso.slice(0, 4)}. Underlying inflation (trimmed mean) was 99.1%. ` +
+    `Inflation was ${cpiOld[1]}% at that time. In ${cpiOld[0].slice(0, 4)} inflation reached ${cpiOld[1]}%. ` +
+    `The RBA wants inflation within its 2–3% target band. The cash rate rose by 0.25% to ${cashNow}%.`, ST);
+  const by = (q) => f.filter((x) => x.quote.includes(q));
+  eq(by("Headline inflation")[0].status, "current"); eq(by("Headline inflation")[0].statId, "cpi");
+  eq(by("Underlying")[0].statId, "trimmed-mean"); eq(by("Underlying")[0].status, "unmatched");
+  eq(by("at that time")[0].status, "outdated");
+  ok(by("at that time")[0].then && by("at that time")[0].latest.includes(L.periodOf(cpi)), "says when the old figure was from, and the latest");
+  eq(by(`In ${cpiOld[0].slice(0, 4)}`)[0].status, "historical");
+  const hist = L.checkFigures("In 2022 inflation peaked at 7.8%. In 1990 inflation was 7.3%. Inflation was 7.9% in 2023.", ST);
+  eq(hist.map((x) => x.status), ["historical", "untracked", "unmatched"], "a named year is checked against that year's figures, within a tenth");
+  eq(by("target band").length, 0, "a range is not a figure to check");
+  const cr = by("cash rate");
+  eq(cr.length, 1, "a change (by 0.25%) is skipped, the level is checked"); eq(cr[0].status, "current"); eq(cr[0].statId, "cash-rate");
 });
-const ESSAY = "Inflation in Australia rose to 7.8% in 2022 because of supply shocks.\n\nThe RBA raised the cash rate to 4.35% which slowed demand.\n\nOverall monetary policy was partly effective.";
-const ectx = { question: QS[0].text, essay: ESSAY, syllabus: SY, evidence: EV, stats: ST, today: TODAY };
-test("essay: prompt has the question, verb meaning, numbered paragraphs, latest data and reply shape", () => {
-  const p = L.essayPrompt(ectx);
-  ok(p.includes(QS[0].text));
-  ok(p.includes(L.VERBS.assess));
-  ok(p.includes("[P3] Overall monetary policy was partly effective."));
-  ok(p.includes("cpi: ") && p.includes(EV[0].id + " | "));
-  ok(p.includes('"dataChecks"') && p.includes("Never rewrite"));
+test("essay checker: the question's dot points, verb, structure and key terms", () => {
+  const q = QS.find((x) => x.id === "q-mp-effectiveness");
+  const essay = [
+    "Monetary policy has been partly effective in achieving the RBA's objectives since 2022, because higher interest rates slowed demand.",
+    `The Reserve Bank raised the cash rate to ${cashNow}% in 2026. This led to higher mortgage repayments, which means households cut spending, so the policy was largely effective at slowing demand.`,
+    "However, inflation remains above target because of supply shocks that interest rates cannot fix, which limited its effect.",
+    "Overall, monetary policy has been effective to a limited extent.",
+  ].join("\n\n");
+  const r = L.checkEssay({ question: q.text, listedDotpoints: q.dotpoints, essay, syllabus: SY, evidence: EV, stats: ST });
+  eq(r.verb, "assess"); eq(r.paragraphs, 4); eq(r.dotpoints, q.dotpoints);
+  ok(r.question.every((c) => c.ok), JSON.stringify(r.question));
+  ok(r.structure.find((c) => /words/.test(c.text)).ok === false, "too short is flagged");
+  ok(r.structure.some((c) => c.ok && /conclusion/.test(c.text)), "conclusion found");
+  ok(r.terms.used.length + r.terms.missing.length > 0, "key terms listed");
+  ok(r.figures.some((x) => x.statId === "cash-rate" && x.status === "current"));
+  ok(!r.addStats.includes("cash-rate"), "a statistic already cited isn't suggested again");
+  ok(r.addStats.every((id) => ST.indicators.some((i) => i.id === id)) && r.addExamples.every((id) => EV.some((e) => e.id === id)));
+  const flat = L.checkEssay({ question: q.text, listedDotpoints: q.dotpoints, essay: "Interest rates went up.\n\nPrices went up.\n\nThe end.", syllabus: SY, evidence: EV, stats: ST });
+  ok(flat.question.some((c) => !c.ok), "no judgement is flagged");
 });
-test("essay: feedback is cleaned before it is shown", () => {
-  const f = L.parseFeedback({
-    mark: "23", summary: "Good.",
-    criteria: [{ id: "evidence", level: 9, comment: "Few stats." }, { id: "question", level: 3, comment: "Clear." }],
-    strengths: [{ quote: "The RBA raised the cash rate to 4.35%", why: "Data." }, { quote: "words that are not in the essay", why: "x" }],
-    improvements: [{ where: "P1", issue: "Old figure", action: "Update it" }, {}],
-    dataChecks: [{ quote: "rose to 7.8% in 2022", status: "outdated", latest: "4.3% in Sep 2026", statId: "cpi" }, { quote: "invented", status: "outdated" }, { quote: "rose to 7.8%", status: "wrong" }],
-    examples: [{ id: EV[0].id, why: "a" }, { id: EV[0].id, why: "dup" }, { id: "made-up", why: "b" }],
-    stats: [{ id: "cpi" }, { id: "nope" }], dotpoints: ["mp-objectives", "nope"], nextStep: "Judge.",
-  }, ectx);
-  eq(f.mark, 20); eq(f.band, "17–20");
-  eq(f.criteria.map((c) => c.id), L.CRITERIA.map((c) => c.id));
-  eq(f.criteria.find((c) => c.id === "evidence").level, null);
-  eq(f.criteria.find((c) => c.id === "question").level, 3);
-  eq(f.strengths.length, 1); eq(f.improvements.length, 1); eq(f.dataChecks.length, 1);
-  eq(f.examples.map((x) => x.id), [EV[0].id]); eq(f.stats.map((x) => x.id), ["cpi"]); eq(f.dotpoints, ["mp-objectives"]);
+test("essay checker: a typed question finds its dot points", () => {
+  const dps = L.questionDotpoints("Evaluate the effectiveness of competition policy in reducing the abuse of market power by supermarkets.", SY);
+  ok(dps.length >= 1 && dps.every((id) => dpIndex[id]), JSON.stringify(dps));
 });
-test("essay: a reply without a mark is rejected", () => {
-  let threw = false; try { L.parseFeedback({ summary: "no mark" }, ectx); } catch (e) { threw = true; } ok(threw);
-  threw = false; try { L.parseFeedback([1, 2], ectx); } catch (e) { threw = true; } ok(threw);
+test("essay checker: no AI and nothing sent anywhere", () => {
+  const app = read("js/app.js"), logic = read("js/logic.js");
+  for (const w of ['use("sample")', "essayPrompt", "parseFeedback", "modelTier"]) ok(!app.includes(w) && !logic.includes(w), w);
+  ok(!/\(\?<[=!]/.test(app + logic), "no lookbehind patterns, which older Safari can't load");
 });
 
 test("suggestion form lists every dot point (run tools/build_issue_template.py after changing dot points)", () => {
@@ -523,12 +541,12 @@ test("news: lists read naturally", () => {
 // ---------- settings ----------
 test("settings: counts what a reset would clear", () => {
   const p = { version: 1, updatedAt: 5, dotStatus: { a: "confident", b: "unsure" }, cards: { c1: {} }, seenEvidence: { e1: 1, e2: 1, e3: 1 }, days: { "2026-10-30": 4 } };
-  eq(L.progressCounts(p, 2), { dots: 2, cards: 1, days: 1, examples: 3, essays: 2 });
-  eq(L.progressCounts(null), { dots: 0, cards: 0, days: 0, examples: 0, essays: 0 });
+  eq(L.progressCounts(p), { dots: 2, cards: 1, days: 1, examples: 3 });
+  eq(L.progressCounts(null), { dots: 0, cards: 0, days: 0, examples: 0 });
 });
 test("settings: a reset starts from empty progress", () => {
   const e = L.emptyProgress();
-  eq(L.progressCounts(e), { dots: 0, cards: 0, days: 0, examples: 0, essays: 0 });
+  eq(L.progressCounts(e), { dots: 0, cards: 0, days: 0, examples: 0 });
   ok(L.mergeProgress({ ...e, updatedAt: 20 }, { version: 1, updatedAt: 10, dotStatus: { a: "confident" } }).dotStatus.a === undefined, "a newer reset beats an older account copy");
 });
 test("settings: the panel has a theme choice and a hold-to-reset button", () => {
@@ -537,7 +555,7 @@ test("settings: the panel has a theme choice and a hold-to-reset button", () => 
   for (const c of ["system", "light", "dark"]) ok(html.includes(`data-choice="${c}"`), c);
   const app = read("js/app.js");
   for (const k of ["dotpoint.progress.v1", "dotpoint.essayDraft.v1", "dotpoint.essays.v1"]) ok(app.includes(k), k);
-  ok(/async function resetAll\(\)[\s\S]*?localStorage.removeItem\(DRAFT_KEY\)[\s\S]*?Essays.clear\(\)/.test(app), "reset clears the draft and essays");
+  ok(/async function resetAll\(\)[\s\S]*?localStorage.removeItem\(DRAFT_KEY\)[\s\S]*?clearOldEssays\(\)/.test(app), "reset clears the draft and any old marked essays");
 });
 
 // ---------- news archive ----------

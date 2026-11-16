@@ -313,10 +313,10 @@
   }
 
   // What a reset would clear, counted for the settings panel.
-  function progressCounts(p, essays) {
+  function progressCounts(p) {
     const n = normaliseProgress(p);
     const size = (o) => Object.keys(o).length;
-    return { dots: size(n.dotStatus), cards: size(n.cards), days: size(n.days), examples: size(n.seenEvidence), essays: essays || 0 };
+    return { dots: size(n.dotStatus), cards: size(n.cards), days: size(n.days), examples: size(n.seenEvidence) };
   }
 
   // Keep whichever copy was changed most recently (this browser or the account copy).
@@ -533,7 +533,10 @@
     return { reason, note, target: String(r.target || "").slice(0, 120), at: r.at || new Date().toISOString() };
   }
 
-  // ---------- essay feedback ----------
+  // ---------- essay checker ----------
+  // Instant checks that run in the browser with no AI: are the figures current, does the response do
+  // what the question's verb asks, is it structured like an extended response, does it use the key
+  // terms, and what evidence could it add. It never gives a mark and never rewrites anything.
 
   // Plain-English meanings of the key verbs, in the spirit of NESA's glossary of key words.
   const VERBS = {
@@ -548,19 +551,8 @@
     justify: "Support an argument or conclusion with evidence.",
     compare: "Show how things are similar and different.",
   };
-
-  const CRITERIA = [
-    { id: "question", name: "Answers the question", detail: "Responds to the key verb (assess and evaluate need a clear, sustained judgement) and covers every part of the question." },
-    { id: "knowledge", name: "Economic knowledge", detail: "Accurate economic concepts, theory and terminology." },
-    { id: "evidence", name: "Evidence", detail: "Relevant, accurate and current statistics and real-world examples, woven into the argument rather than listed." },
-    { id: "analysis", name: "Analysis", detail: "Cause-and-effect chains, links between concepts, and the limits and other influences that complicate the picture." },
-    { id: "structure", name: "Structure", detail: "A clear thesis in the introduction, paragraphs that each make one point, and a conclusion that answers the question." },
-  ];
-  const LEVELS = ["", "Limited", "Sound", "Thorough", "Sophisticated"];
-  const ESSAY_MARKS = 20;
-  const ESSAY_MIN_WORDS = 150;
+  const ESSAY_MIN_WORDS = 80;
   const ESSAY_MAX_CHARS = 25000;
-  const CHECK_STATUS = ["outdated", "incorrect", "unsourced"];
 
   function wordCount(text) {
     const m = String(text || "").match(/[A-Za-z0-9][A-Za-z0-9'’%.$,-]*/g);
@@ -581,113 +573,208 @@
     return words.find((w) => VERBS[w]) || null;
   }
 
-  // HSC-style bands for a 20-mark extended response.
-  function bandFor(mark) {
-    if (mark >= 17) return "17–20";
-    if (mark >= 13) return "13–16";
-    if (mark >= 9) return "9–12";
-    if (mark >= 5) return "5–8";
-    if (mark >= 1) return "1–4";
-    return "0";
+  function sentences(text) {
+    return String(text || "").replace(/\s+/g, " ").replace(/([.!?])\s+(?=["“‘(]?[A-Z0-9])/g, "$1\n").split("\n").map((s) => s.trim()).filter(Boolean);
   }
 
-  // Everything Claude needs in one memoryless prompt: the task, the rubric, the rules,
-  // Dotpoint's own statistics and examples (so it can check figures and suggest evidence), and the reply shape.
-  function essayPrompt(ctx) {
-    const { question, essay, syllabus, evidence, stats, today } = ctx;
-    const verb = verbOf(question);
-    const paras = paragraphs(essay);
-    const idx = dotpointIndex(syllabus);
-    const lines = [];
-    lines.push(`You are an experienced HSC Economics marker in New South Wales. Mark this practice extended response (${ESSAY_MARKS} marks), written by a Year 11 or 12 student studying the ${syllabus.syllabus}. Today is ${fmtDate(today)}.`);
-    lines.push("", `QUESTION (${ESSAY_MARKS} marks): ${question.trim()}`);
-    if (verb) lines.push(`Key verb: "${verb}", which means: ${VERBS[verb]}`);
-    lines.push("", "THE STUDENT'S RESPONSE (paragraphs numbered P1, P2… for your reference; the student did not write the labels):");
-    paras.forEach((p, i) => lines.push(`[P${i + 1}] ${p}`));
-    lines.push("", "HOW TO MARK",
-      "Judge the response on these five criteria. Give each a level from 1 to 4 (1 limited, 2 sound, 3 thorough, 4 sophisticated) and a specific comment of one or two sentences:");
-    for (const c of CRITERIA) lines.push(`- ${c.id}: ${c.detail}`);
-    lines.push(`Then give one mark out of ${ESSAY_MARKS}, as an HSC marker would, using the bands 17–20, 13–16, 9–12, 5–8 and 1–4. Be honest and do not inflate. A response that describes when the verb asks for a judgement, or that uses few accurate and current statistics, does not belong in the top band.`);
-    lines.push("", "RULES",
-      "- Never rewrite the response or write sentences the student could paste in. Say what to change and where (by paragraph label), not the words to use.",
-      "- Every \"quote\" must be copied exactly from the response, at most 20 words.",
-      "- Suggest examples and statistics only by the ids listed below, at most 3 of each, and only ones that genuinely fit this question.",
-      "- dataChecks: list each statistic or dated fact in the response that is out of date, incorrect, or given without a period or source, compared with the latest statistics below. status is \"outdated\", \"incorrect\" or \"unsourced\". Give an empty list if there are none.",
-      "- Write in plain Australian English and speak to the student as \"you\".");
-    lines.push("", "LATEST STATISTICS (id: ready-to-cite sentence)");
-    for (const i of stats.indicators) lines.push(`${i.id}: ${citationSentence(i)}`);
-    lines.push("", "REAL-WORLD EXAMPLES IN DOTPOINT (id | date | title | key figure | dot points)");
-    for (const e of evidence) {
-      const dps = e.dotpoints.filter((id) => idx[id]).map((id) => idx[id].short).join(", ");
-      lines.push(`${e.id} | ${e.date} | ${e.title} | ${e.keyFigure} | ${dps}`);
+  // Words that tie a figure in a sentence to one of Dotpoint's statistics. Longer phrases win, so
+  // "underlying inflation" is never read as headline inflation.
+  const STAT_WORDS = {
+    "cash-rate": ["cash rate", "cash rate target", "official interest rate", "official cash rate"],
+    "mortgage-rate": ["mortgage rate", "mortgage rates", "variable mortgage", "home loan rate", "home loan rates"],
+    "trimmed-mean": ["underlying inflation", "trimmed mean", "trimmed-mean", "core inflation"],
+    cpi: ["inflation", "headline inflation", "cpi", "consumer price index", "consumer prices"],
+    unemployment: ["unemployment", "unemployment rate", "jobless rate"],
+    participation: ["participation", "participation rate"],
+    "gdp-growth": ["gdp", "real gdp", "economic growth", "gdp growth", "the economy grew"],
+    "current-account": ["current account", "current account deficit", "current account balance"],
+    "wage-growth": ["wage growth", "wages", "wage price index", "wpi"],
+    productivity: ["productivity", "labour productivity"],
+    "employment-growth": ["employment growth"],
+    vacancies: ["vacancy rate", "job vacancies", "vacancies"],
+    "bond-10y": ["10-year bond", "ten-year bond", "bond yield", "bond yields"],
+    "housing-credit": ["housing credit"],
+    "consumption-growth": ["consumption growth", "household consumption", "consumer spending", "household spending"],
+    "saving-ratio": ["saving ratio", "savings ratio", "household saving"],
+  };
+  const PERIOD_WORDS = /\b(?:19|20)\d{2}\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\b|\bquarter\b|\byear to\b|\bfinancial year\b|\bin 20\d{2}/i;
+  const NOT_A_LEVEL = /\b(?:target|targets|band|forecast|forecasts|expected|expects|predicts|projected|projects|could|would)\b/i;
+
+  function statMentions(sentence) {
+    const low = sentence.toLowerCase();
+    const found = [];
+    for (const [id, words] of Object.entries(STAT_WORDS)) {
+      for (const w of words) {
+        const re = new RegExp(`(^|[^a-z-])(${w.replace(/[-]/g, "[- ]")})(?![a-z])`, "g");
+        let m;
+        while ((m = re.exec(low))) {
+          const at = m.index + m[1].length;
+          found.push({ id, at, end: at + m[2].length });
+          re.lastIndex = at + 1;
+        }
+      }
     }
-    lines.push("", "DOT POINTS (id: summary)");
-    for (const dp of Object.values(idx)) lines.push(`${dp.id}: ${dp.text}`);
-    lines.push("", "Reply with only one JSON object in exactly this shape (2 or 3 strengths, 3 to 5 improvements with the most important first):",
-      JSON.stringify({
-        mark: 14,
-        summary: "Two sentences on the overall quality and the main thing holding the mark back.",
-        criteria: CRITERIA.map((c) => ({ id: c.id, level: 3, comment: "…" })),
-        strengths: [{ quote: "exact words from the response", why: "…" }],
-        improvements: [{ where: "P2", issue: "what is wrong", action: "what to do about it" }],
-        dataChecks: [{ quote: "exact words from the response", status: "outdated", latest: "the current figure and its period", statId: "cpi" }],
-        examples: [{ id: "example id", why: "how it would strengthen the argument" }],
-        stats: [{ id: "statistic id", why: "…" }],
-        dotpoints: ["dot point id"],
-        nextStep: "The single most important change for the next draft.",
-      }));
-    return lines.join("\n");
+    found.sort((a, b) => (b.end - b.at) - (a.end - a.at)); // longest first
+    const kept = [];
+    for (const f of found) if (!kept.some((k) => f.at < k.end && k.at < f.end)) kept.push(f);
+    return kept;
   }
 
-  function looseText(s) {
-    return String(s || "").toLowerCase().replace(/[‘’`]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-")
-      .replace(/\s+/g, " ").replace(/^["'\s.…]+|["'\s.…]+$/g, "").trim();
+  // Every percentage in the response that sits beside one of Dotpoint's statistics, checked against
+  // that statistic's history: the latest figure, an older one (and whether its year is given), or none.
+  function checkFigures(essay, stats) {
+    const byId = Object.fromEntries(stats.indicators.map((i) => [i.id, i]));
+    const out = [];
+    for (const s of sentences(essay)) {
+      const mentions = statMentions(s);
+      if (!mentions.length) continue;
+      const re = /(^|[^\d.])([-−]|minus\s)?(\d{1,3}(?:\.\d+)?)\s?(?:%|per\s?cent)(?![a-z])/gi;
+      let raw;
+      while ((raw = re.exec(s))) {
+        // the figure itself, without the character matched in front of it
+        const m = Object.assign(raw.slice(1), { index: raw.index + raw[1].length });
+        m[0] = raw[0].slice(raw[1].length);
+        re.lastIndex = m.index + m[0].length;
+        const before = s.slice(0, m.index), after = s.slice(m.index + m[0].length);
+        if (/\d\s?(?:–|-|to)\s?$/.test(before) || /^\s?(?:–|-|to)\s?\d/.test(after)) continue; // a range, like 2–3%
+        if (/\bby\s*$/i.test(before)) continue; // a change ("rose by 0.25%"), not a level
+        const near = mentions.map((x) => ({ ...x, d: x.end <= m.index ? m.index - x.end : x.at >= m.index + m[0].length ? (x.at - m.index - m[0].length) * 1.5 : 0 }))
+          .filter((x) => x.d <= 90).sort((a, b) => a.d - b.d)[0];
+        if (!near || !byId[near.id]) continue;
+        const ind = byId[near.id];
+        const v = (m[1] ? -1 : 1) * Number(m[2]);
+        const dec = (m[2].split(".")[1] || "").length;
+        const same = (x) => Math.abs(x - v) <= 0.5 * Math.pow(10, -dec) + 1e-9;
+        const lastV = ind.points[ind.points.length - 1][1];
+        // every observation Dotpoint has, newest first: the recent series, then any longer history (quarterly CPI from 2020)
+        const seen = new Set(ind.points.map((x) => x[0]));
+        const older = ind.points.slice(0, -1).map((x) => [...x, ind.frequency])
+          .concat(((ind.history && ind.history.points) || []).filter((x) => !seen.has(x[0])).map((x) => [...x, ind.history.frequency]))
+          .sort((a, b) => (a[0] < b[0] ? 1 : -1));
+        const quote = s.length > 160 ? s.slice(Math.max(0, m.index - 70), m.index + m[0].length + 50).trim() : s;
+        const base = { quote, value: m[0].trim(), statId: ind.id, latest: `${fmtValue(ind, lastV)} (${periodOf(ind)})`, dated: PERIOD_WORDS.test(s) };
+        if (same(lastV)) { out.push({ ...base, status: "current" }); continue; }
+        const years = (s.match(/\b(?:19|20)\d{2}\b/g) || []);
+        const exact = older.find((x) => same(x[1]));
+        // a figure for a year the sentence names: official figures get revised, so allow a tenth either way
+        const inYear = years.length && older.find((x) => years.includes(x[0].slice(0, 4)) && Math.abs(x[1] - v) <= 0.15);
+        const firstYear = older.length ? older[older.length - 1][0].slice(0, 4) : "9999";
+        if (inYear) out.push({ ...base, status: "historical", then: fmtPeriod(inYear[0], inYear[2]) });
+        else if (years.length && years.every((y) => y < firstYear)) out.push({ ...base, status: "untracked", then: fmtPeriod(older[older.length - 1][0], older[older.length - 1][2]) });
+        else if (exact && !years.length) out.push({ ...base, status: "outdated", then: fmtPeriod(exact[0], exact[2]) });
+        else if (!NOT_A_LEVEL.test(s)) out.push({ ...base, status: "unmatched" });
+      }
+    }
+    return out;
   }
 
-  function str(v, max) {
-    return typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : "";
+  // The dot points a question draws on: listed for the practice questions, otherwise the dot points
+  // whose words the question shares most.
+  function questionDotpoints(question, syllabus, listed) {
+    const idx = dotpointIndex(syllabus);
+    if (listed && listed.length) return listed.filter((id) => idx[id]);
+    const skip = new Set(["the", "and", "of", "in", "on", "to", "a", "an", "its", "with", "for", "since", "recent", "years", "australia", "australian", "economy", "reference", ...Object.keys(VERBS)]);
+    const q = tokens(question).filter((t) => !skip.has(t) && t.length > 2);
+    const scored = Object.values(idx).map((dp) => {
+      const words = tokens([dp.text, dp.short, (dp.terms || []).map((t) => t[0]).join(" ")].join(" "));
+      return [q.filter((t) => words.some((w) => w === t || (t.length > 4 && w.startsWith(t.slice(0, -1))))).length, dp.id];
+    }).filter((x) => x[0] >= 1).sort((a, b) => b[0] - a[0]);
+    return scored.slice(0, 3).map((x) => x[1]);
   }
 
-  // Check Claude's reply before showing it: clamp the mark, keep only quotes that really are in
-  // the essay and only ids that exist in Dotpoint. Throws if the reply has no usable mark.
-  function parseFeedback(raw, ctx) {
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("not an object");
-    const n = Math.round(Number(raw.mark));
-    if (!Number.isFinite(n)) throw new Error("no mark");
-    const mark = Math.max(0, Math.min(ESSAY_MARKS, n));
-    const essayText = looseText(ctx.essay);
-    const inEssay = (q) => { const t = looseText(q); return t.length >= 3 && essayText.includes(t); };
-    const evIds = new Set(ctx.evidence.map((e) => e.id));
-    const statIds = new Set(ctx.stats.indicators.map((i) => i.id));
-    const idx = dotpointIndex(ctx.syllabus);
-    const list = (v) => (Array.isArray(v) ? v.filter((x) => x && typeof x === "object") : []);
-    const byId = Object.fromEntries(list(raw.criteria).map((c) => [String(c.id), c]));
-    const uniqueBy = (arr, key) => { const seen = new Set(); return arr.filter((x) => !seen.has(x[key]) && seen.add(x[key])); };
+  const JUDGEMENT = /\b(?:effective|ineffective|effectively|successful|unsuccessful|to a (?:large|great|limited|small|significant|lesser|greater) extent|largely|partly|partially|outweigh|outweighs|outweighed|most important|more important|most significant|on balance|overall|significant(?:ly)?|limited|crucial|primary|main reason|clearly)\b/i;
+  const CONTRAST = /\b(?:however|on the other hand|although|whereas|conversely|in contrast|nevertheless|despite|yet|while)\b/gi;
+  const CAUSE = /\b(?:because|therefore|as a result|leads? to|led to|leading to|causing|caused|causes|resulting in|results? in|which means|this means|means that|thereby|consequently|due to|in turn|so that|shows?|showing|suggests?|driven by|drives|contribut(?:ed|es|ing) to|in response to|reduc(?:es|ed|ing)|increas(?:es|ed|ing)|lower(?:s|ed|ing)|rais(?:es|ed|ing))\b/gi;
+  const CONCLUDES = /\b(?:in conclusion|to conclude|overall|ultimately|in summary|therefore|thus)\b/i;
+  const count = (re, s) => (String(s).match(re) || []).length;
+
+  // Does the response do what the verb asks? Each item is { ok, text }.
+  function verbChecks(verb, paras) {
+    const out = [];
+    if (!verb) return [{ ok: false, text: "The question doesn't start with a key verb, so check you know whether it wants a judgement, an explanation or both sides." }];
+    const intro = paras[0] || "", end = paras[paras.length - 1] || "", body = paras.slice(1, -1);
+    if (["assess", "evaluate", "justify"].includes(verb)) {
+      out.push(JUDGEMENT.test(intro)
+        ? { ok: true, text: "Your introduction states a judgement." }
+        : { ok: false, text: `"${verb[0].toUpperCase() + verb.slice(1)}" asks for a judgement. Say in your introduction how effective, significant or important you think it is.` });
+      out.push(JUDGEMENT.test(end)
+        ? { ok: true, text: "Your conclusion comes back to a judgement." }
+        : { ok: false, text: "Your conclusion should answer the question directly with your final judgement." });
+      const judged = body.filter((p) => JUDGEMENT.test(p)).length;
+      if (body.length) out.push(judged >= Math.ceil(body.length / 2)
+        ? { ok: true, text: `${judged} of ${body.length} body paragraphs make a judgement, not just a description.` }
+        : { ok: false, text: `Only ${judged} of ${body.length} body paragraphs make a judgement. End each one by saying what it shows about the question.` });
+    } else if (["discuss", "compare"].includes(verb)) {
+      const n = paras.reduce((s, p) => s + count(CONTRAST, p), 0);
+      out.push(n >= 2
+        ? { ok: true, text: `You weigh up more than one side (${n} contrasting links such as "however").` }
+        : { ok: false, text: `"${verb[0].toUpperCase() + verb.slice(1)}" needs more than one side. Add points against, or differences, linked with words like "however" or "on the other hand".` });
+    }
+    if (["analyse", "explain", "examine", "assess", "evaluate", "discuss"].includes(verb) && body.length) {
+      const linked = body.filter((p) => count(CAUSE, p) >= 1).length;
+      out.push(linked === body.length
+        ? { ok: true, text: "Every body paragraph links cause and effect." }
+        : { ok: false, text: `${body.length - linked} of ${body.length} body paragraphs have no cause-and-effect link ("because", "leads to", "as a result"). Show how one thing causes another.` });
+    }
+    return out;
+  }
+
+  function structureChecks(question, paras, words) {
+    const out = [];
+    if (words < 400) out.push({ ok: false, text: `${words} words is short for an extended response. Most strong responses are about 800 to 1,200 words.` });
+    else if (words < 750) out.push({ ok: false, text: `${words} words is on the short side. Most strong responses are about 800 to 1,200 words.` });
+    else if (words > 1600) out.push({ ok: false, text: `${words} words is long for the time you'd have in an exam. Check every paragraph earns its place.` });
+    else out.push({ ok: true, text: `${words} words is a good length for an extended response.` });
+    out.push(paras.length >= 4
+      ? { ok: true, text: `${paras.length} paragraphs: an introduction, ${paras.length - 2} body paragraphs and a conclusion.` }
+      : { ok: false, text: `${paras.length} paragraph${paras.length === 1 ? "" : "s"}. Aim for an introduction, three or four body paragraphs and a conclusion, with a blank line between them.` });
+    const skip = new Set(Object.keys(VERBS).concat(["the", "and", "of", "in", "on", "to", "its", "with", "for", "since", "recent", "years", "reference", "australia", "australian", "economy"]));
+    const key = [...new Set(tokens(question).filter((t) => t.length > 3 && !skip.has(t)))];
+    const intro = tokens(paras[0] || "");
+    const used = key.filter((t) => intro.some((w) => w.startsWith(t.slice(0, Math.max(4, t.length - 2)))));
+    if (key.length) out.push(used.length >= Math.min(2, key.length)
+      ? { ok: true, text: "Your introduction uses the question's own words, so the marker sees you're answering it." }
+      : { ok: false, text: `Your introduction doesn't pick up the question's key words (${key.slice(0, 4).join(", ")}). Use them to show you're answering this question.` });
+    if (paras.length >= 3) out.push(CONCLUDES.test(paras[paras.length - 1])
+      ? { ok: true, text: "Your last paragraph reads as a conclusion." }
+      : { ok: false, text: "Your last paragraph doesn't read as a conclusion. Sum up your argument and answer the question." });
+    const long = paras.slice(1, -1).map((p, i) => [wordCount(p), i + 2]).filter(([n]) => n > 320);
+    if (long.length) out.push({ ok: false, text: `Paragraph ${long.map((x) => x[1]).join(" and ")} ${long.length > 1 ? "are" : "is"} over 320 words. Split ${long.length > 1 ? "them" : "it"} so each paragraph makes one point.` });
+    return out;
+  }
+
+  function checkEssay({ question, listedDotpoints, essay, syllabus, evidence, stats }) {
+    const idx = dotpointIndex(syllabus);
+    const paras = paragraphs(essay);
+    const words = wordCount(essay);
+    const verb = verbOf(question);
+    const dps = questionDotpoints(question, syllabus, listedDotpoints);
+    const low = String(essay).toLowerCase();
+    const termList = [];
+    for (const id of dps) for (const [t] of idx[id].terms || []) if (!termList.includes(t)) termList.push(t);
+    const used = (t) => { const s = t.toLowerCase().replace(/[()]/g, ""); return low.includes(s) || low.includes(s.replace(/s$/, "")); };
+    const figures = checkFigures(essay, stats);
+    const citedStats = new Set(figures.map((f) => f.statId));
+    const overlap = (list) => list.filter((id) => dps.includes(id)).length;
+    const addStats = stats.indicators.filter((i) => !citedStats.has(i.id) && overlap(i.dotpoints))
+      .sort((a, b) => overlap(b.dotpoints) - overlap(a.dotpoints)).slice(0, 4).map((i) => i.id);
+    // an example whose key number is already in the response is probably already used
+    const usedFigure = (e) => { const n = (String(e.keyFigure || "").match(/[-−]?\$?\d[\d.,]*%?/) || [""])[0]; return n.length > 1 && low.includes(n.toLowerCase()); };
+    const addExamples = evidence.filter((e) => overlap(e.dotpoints) && !usedFigure(e))
+      .sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 4).map((e) => e.id);
     return {
-      mark, outOf: ESSAY_MARKS, band: bandFor(mark),
-      summary: str(raw.summary, 600),
-      criteria: CRITERIA.map((c) => {
-        const r = byId[c.id] || {};
-        const lv = Math.round(Number(r.level));
-        return { id: c.id, name: c.name, level: lv >= 1 && lv <= 4 ? lv : null, comment: str(r.comment, 500) };
-      }),
-      strengths: list(raw.strengths).filter((s) => inEssay(s.quote)).slice(0, 3)
-        .map((s) => ({ quote: str(s.quote, 200), why: str(s.why, 400) })),
-      improvements: list(raw.improvements).map((x) => ({ where: str(x.where, 24), issue: str(x.issue, 400), action: str(x.action, 500) }))
-        .filter((x) => x.issue || x.action).slice(0, 5),
-      dataChecks: list(raw.dataChecks).filter((d) => CHECK_STATUS.includes(d.status) && inEssay(d.quote)).slice(0, 6)
-        .map((d) => ({ quote: str(d.quote, 200), status: d.status, latest: str(d.latest, 300), statId: statIds.has(d.statId) ? d.statId : null })),
-      examples: uniqueBy(list(raw.examples).filter((x) => evIds.has(x.id)), "id").slice(0, 3).map((x) => ({ id: x.id, why: str(x.why, 300) })),
-      stats: uniqueBy(list(raw.stats).filter((x) => statIds.has(x.id)), "id").slice(0, 3).map((x) => ({ id: x.id, why: str(x.why, 300) })),
-      dotpoints: [...new Set((Array.isArray(raw.dotpoints) ? raw.dotpoints : []).filter((id) => idx[id]))].slice(0, 5),
-      nextStep: str(raw.nextStep, 400),
+      words, paragraphs: paras.length, verb, dotpoints: dps, figures,
+      question: verbChecks(verb, paras),
+      structure: structureChecks(question, paras, words),
+      terms: { used: termList.filter(used), missing: termList.filter((t) => !used(t)) },
+      addStats, addExamples,
     };
   }
 
   const api = {
     DAY, INTERVALS, MAX_BOX, REPORT_REASONS,
-    VERBS, CRITERIA, LEVELS, ESSAY_MARKS, ESSAY_MIN_WORDS, ESSAY_MAX_CHARS,
-    wordCount, paragraphs, verbOf, bandFor, essayPrompt, parseFeedback,
+    VERBS, ESSAY_MIN_WORDS, ESSAY_MAX_CHARS,
+    wordCount, paragraphs, verbOf, sentences, checkFigures, questionDotpoints, checkEssay,
     parseISO, toISO, fmtDate, fmtMonth, fmtPeriod, monthsBetween, freshness, ageText,
     grade, isDue, dueQueue, dayNumber,
     latest, yearChange, fmtValue, fmtDelta, periodOf, citationSentence, sentenceValue, sourceShort, isDaily,
