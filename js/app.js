@@ -514,11 +514,149 @@
 
   function goldUnlock() {
     if (!goldEarned || !goldWanted()) return; // un-rated again in the meantime
-    const swap = () => { applyGold(true); if (ui.view === "today") render("today"); };
-    if (typeof document.startViewTransition === "function" && !reducedMotion()) document.startViewTransition(swap);
-    else swap();
-    toast("All dot points confident. Gold finish on: turn it off any time in Settings");
-    buddyReact("proud");
+    if (reducedMotion()) {
+      applyGold(true);
+      if (ui.view === "today") render("today");
+      announce("All dot points confident. Gold finish on. You can turn it off in Settings.");
+      buddyReact("proud");
+      return;
+    }
+    playUnlock();
+  }
+
+  // Says something to screen readers without showing it on screen.
+  function announce(text) {
+    let live = $("sr-announce");
+    if (!live) { live = h("div", { id: "sr-announce", class: "sr-only", role: "status", "aria-live": "polite" }); document.body.append(live); }
+    live.textContent = "";
+    setTimeout(() => { live.textContent = text; }, 60);
+  }
+
+  // The unlock moment, about ten seconds: the logo's dot drops in and bounces, its pen circle draws itself
+  // and the dot opens its eyes, one dot per dot point flies into a ring as the count reaches 39/39,
+  // everything turns gold and the ring spins, then bursts like confetti, and the dot flies up into the
+  // 39/39 mark. A tap, click or key press skips to the end. done() runs when it finishes or is skipped.
+  let unlockPlaying = false;
+  const RING_PATH = "M40 8 C24 2 6 13 6.5 30 C7 46 20 52.5 30 51.5 C44 50.5 51.5 40 50.5 27 C49.5 14 38 5.5 24 8.5";
+
+  function playUnlock(done) {
+    if (unlockPlaying) return;
+    if ($("settings-dialog").open) { closeSettings(); setTimeout(() => playUnlock(done), 420); return; }
+    unlockPlaying = true;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const size = Math.round(Math.min(vw, vh) * 0.22);
+    const cx = vw / 2, cy = vh * 0.44;
+    const n = SY.focusAreas.reduce((t, fa) => t + fa.dotpoints.length, 0);
+    const ringR = size * 0.98, dotSize = Math.max(8, Math.round(size * 0.075));
+    const timers = [], anims = [];
+    const later = (ms, fn) => timers.push(setTimeout(fn, ms));
+    const play = (el, frames, opts) => { const a = motion(el, frames, opts); if (a) anims.push(a); return a; };
+    const back = document.activeElement;
+
+    const stage = h("div", { class: "unlock", "aria-hidden": "true" });
+    const veil = h("div", { class: "unlock-veil" });
+    const hero = h("div", { class: "unlock-hero", style: `left:${cx - size / 2}px;top:${cy - size / 2}px;width:${size}px;height:${size}px` });
+    hero.append(s("svg", { viewBox: "0 0 64 64", focusable: "false" },
+      s("circle", { class: "u-dot", cx: 37, cy: 37, r: 21 }),
+      s("g", { class: "u-eyes" }, s("ellipse", { cx: 31.5, cy: 35, rx: 2.4, ry: 3.4 }), s("ellipse", { cx: 42.5, cy: 35, rx: 2.4, ry: 3.4 })),
+      s("path", { class: "u-face", d: "M28.5 36 Q31.5 32.5 34.5 36 M39.5 36 Q42.5 32.5 45.5 36 M32 42 Q37 46.5 42 42" }),
+      s("path", { class: "u-ring", pathLength: 100, d: RING_PATH })));
+    const orbit = h("div", { class: "unlock-orbit", style: `left:${cx}px;top:${cy}px` });
+    const count = h("div", { class: "unlock-count", style: `top:${Math.round(cy + ringR + dotSize + 20)}px` }, `0/${n}`);
+    const skip = h("button", { type: "button", class: "unlock-skip" }, "Skip");
+    stage.append(veil, orbit, hero, count);
+    const wrap = h("div", { class: "unlock-wrap" }, stage, skip);
+    document.body.append(wrap);
+    skip.focus({ preventScroll: true });
+    announce("All dot points confident. Gold finish on. You can turn it off in Settings.");
+
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      timers.forEach(clearTimeout);
+      anims.forEach((a) => { try { a.cancel(); } catch (e) { /* already gone */ } });
+      document.removeEventListener("keydown", onKey, true);
+      wrap.remove();
+      unlockPlaying = false;
+      applyGold(true);
+      if (ui.view === "today") render("today");
+      buddyReact("proud");
+      if (back && typeof back.focus === "function" && document.contains(back)) back.focus({ preventScroll: true });
+      if (done) done();
+    };
+    const onKey = (e) => { if (["Escape", "Enter", " "].includes(e.key)) { e.preventDefault(); finish(); } };
+    document.addEventListener("keydown", onKey, true);
+    wrap.addEventListener("click", finish);
+
+    // 0 to 1.4 s: the page dims and the dot drops in, bouncing
+    play(veil, [{ opacity: 0 }, { opacity: 0.94 }], { duration: 500, fill: "forwards" });
+    play(hero, [
+      { transform: `translateY(${-(cy + size)}px) scale(0.9, 1.1)` },
+      { transform: "translateY(0) scale(1.2, 0.8)", offset: 0.5 },
+      { transform: "translateY(-34px) scale(0.94, 1.07)", offset: 0.68 },
+      { transform: "translateY(0) scale(1.07, 0.94)", offset: 0.84 },
+      { transform: "translateY(0) scale(1)" }], { duration: 1150, delay: 250, easing: "cubic-bezier(.45,0,.55,1)", fill: "backwards" });
+    // 1.4 to 2.8 s: the pen draws its circle, the dot opens its eyes and blinks
+    play(hero.querySelector(".u-ring"), [{ strokeDashoffset: 100 }, { strokeDashoffset: 0 }], { duration: 900, delay: 1400, easing: "ease-in-out", fill: "forwards" });
+    play(hero.querySelector(".u-eyes"), [{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 2250, fill: "forwards" });
+    play(hero.querySelector(".u-eyes"), [{ transform: "scaleY(1)" }, { transform: "scaleY(0.1)" }, { transform: "scaleY(1)" }], { duration: 260, delay: 2750 });
+    play(count, [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 300, delay: 2500, fill: "forwards" });
+
+    // 2.8 to 5.4 s: one dot per dot point flies in from the edges and lands on a ring; the count ticks up
+    const dots = [];
+    const span = 2300 / n;
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (i / n) * Math.PI * 2;
+      const fx = Math.cos(a) * ringR, fy = Math.sin(a) * ringR;
+      const from = a + (Math.random() - 0.5) * 1.2, far = Math.max(vw, vh) * 0.8;
+      const dot = h("span", { class: "unlock-dot" + (i % 3 === 1 ? " silver" : ""), style: `width:${dotSize}px;height:${dotSize}px;left:${fx - dotSize / 2}px;top:${fy - dotSize / 2}px` });
+      orbit.append(dot);
+      dots.push([dot, fx, fy]);
+      const delay = 2800 + i * span;
+      play(dot, [
+        { transform: `translate(${Math.cos(from) * far - fx}px, ${Math.sin(from) * far - fy}px) scale(0.6)`, opacity: 0 },
+        { opacity: 1, offset: 0.3 },
+        { transform: "translate(0, 0) scale(1.35)", offset: 0.8 },
+        { transform: "translate(0, 0) scale(1)", opacity: 1 }], { duration: 620, delay, easing: "cubic-bezier(.2,.8,.3,1)", fill: "backwards" });
+      later(delay + 500, () => { count.textContent = `${i + 1}/${n}`; });
+    }
+
+    // 5.4 to 7.5 s: everything turns gold, the face goes happy, the ring of dots spins once
+    later(5400, () => {
+      stage.classList.add("gilded");
+      applyGold(true);
+      play(count, [{ transform: "scale(1)" }, { transform: "scale(1.25)" }, { transform: "scale(1)" }], { duration: 520, easing: "cubic-bezier(.3,1.6,.5,1)" });
+      play(hero, [{ transform: "scale(1)" }, { transform: "scale(1.12)" }, { transform: "scale(1)" }], { duration: 520, easing: "cubic-bezier(.3,1.6,.5,1)" });
+    });
+    play(orbit, [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }], { duration: 2000, delay: 5500, easing: "cubic-bezier(.6,0,.3,1)" });
+
+    // 7.6 to 9.2 s: the ring bursts outwards and falls like confetti
+    later(7600, () => {
+      play(count, [{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" });
+      for (const [dot, fx, fy] of dots) {
+        const spread = 1.6 + Math.random() * 1.4;
+        play(dot, [
+          { transform: "translate(0, 0) scale(1)", opacity: 1 },
+          { transform: `translate(${fx * spread}px, ${fy * spread - 30}px) scale(1.1)`, opacity: 1, offset: 0.35 },
+          { transform: `translate(${fx * spread * 1.15}px, ${fy * spread + vh * 0.7}px) scale(0.5) rotate(${Math.round(Math.random() * 360)}deg)`, opacity: 0 }],
+          { duration: 1400 + Math.random() * 500, easing: "cubic-bezier(.25,.6,.45,1)", fill: "forwards" });
+      }
+      play(hero, [{ transform: "scale(1)" }, { transform: "scale(1.22, 0.86)" }, { transform: "scale(1)" }], { duration: 380, easing: "ease-out" });
+    });
+
+    // 8.6 to 10 s: the dot flies up into the 39/39 mark (or the logo), and the page comes back
+    later(8600, () => {
+      const mark = $("done-mark");
+      const target = mark && mark.offsetWidth ? mark : document.querySelector(".brand-mark");
+      const t = target.getBoundingClientRect();
+      const tx = (mark && mark.offsetWidth ? t.left + 4 : t.left + t.width / 2) - cx, ty = t.top + t.height / 2 - cy;
+      play(hero, [{ transform: "translate(0, 0) scale(1)", opacity: 1 }, { transform: `translate(${tx}px, ${ty}px) scale(${Math.max(0.06, 14 / size)})`, opacity: 0.4 }],
+        { duration: 900, easing: "cubic-bezier(.55,0,.2,1)", fill: "forwards" });
+      play(veil, [{ opacity: 0.94 }, { opacity: 0 }], { duration: 1100, delay: 250, fill: "forwards" });
+      later(950, () => play(target, [{ transform: "scale(1)" }, { transform: "scale(1.5)" }, { transform: "scale(1)" }], { duration: 420, easing: "cubic-bezier(.3,1.6,.5,1)" }));
+    });
+    later(10000, finish);
   }
 
   // The Gold finish switch in Settings: shown to anyone who has earned the finish, or opened it from the
@@ -638,22 +776,24 @@
   function setNote(id, text, kind) { const el = $(id); if (el) { el.textContent = text; el.dataset.kind = kind || ""; } }
 
   // A button that needs a second tap within a few seconds, for anything that overwrites saved progress.
-  function confirmButton(label, sure, onConfirm) {
+  // The label never changes, so the buttons never move: the first tap tints it and noteId says to tap again.
+  function confirmButton(label, sure, noteId, onConfirm) {
     let armed = 0;
     const b = h("button", { type: "button", class: "btn small" }, label);
+    const disarm = () => { clearTimeout(armed); armed = 0; b.classList.remove("armed"); b.removeAttribute("aria-describedby"); };
     b.addEventListener("click", () => {
       if (!armed) {
-        b.textContent = sure;
+        for (const other of b.parentElement.querySelectorAll(".armed")) other.dispatchEvent(new Event("disarm"));
         b.classList.add("armed");
-        armed = setTimeout(() => { armed = 0; b.textContent = label; b.classList.remove("armed"); }, 3500);
+        b.setAttribute("aria-describedby", noteId);
+        setNote(noteId, sure);
+        armed = setTimeout(() => { disarm(); setNote(noteId, ""); }, 3500);
         return;
       }
-      clearTimeout(armed);
-      armed = 0;
-      b.textContent = label;
-      b.classList.remove("armed");
+      disarm();
       onConfirm();
     });
+    b.addEventListener("disarm", disarm);
     return b;
   }
 
@@ -719,16 +859,17 @@
       } else if (what === "gold") {
         const was = goldOn();
         applyGold(false);
-        setTimeout(() => {
-          const swap = () => applyGold(true);
-          if (typeof document.startViewTransition === "function" && !reducedMotion()) document.startViewTransition(swap); else swap();
-          toast("All dot points confident. Gold finish on: turn it off any time in Settings");
-          buddyReact("proud");
-          if (!was) setTimeout(() => {
-            const back = () => applyGold(false);
+        // After the replay, a page that wasn't gold goes back to normal a few seconds later.
+        const after = () => {
+          if (was) return;
+          setTimeout(() => {
+            const back = () => applyGold(goldOn());
             if (typeof document.startViewTransition === "function" && !reducedMotion()) document.startViewTransition(back); else back();
-          }, 5000);
-        }, 450);
+          }, 3000);
+        };
+        setTimeout(() => {
+          if (reducedMotion()) { applyGold(true); after(); } else playUnlock(after);
+        }, 300);
       }
     }, 450);
   }
@@ -912,10 +1053,10 @@
     box.replaceChildren(
       adminSection("progress", "Test progress",
         h("p", { class: "small muted" }, "Sets your dot point ratings in one go, to try the unlock, the progress bars and the tiles. Your own ratings are kept until you put them back."),
-        h("div", { class: "tool-buttons" },
-          confirmButton("All confident", "Tap again to set", () => testRatings("all")),
-          confirmButton("Mixed", "Tap again to set", () => testRatings("mixed")),
-          confirmButton("All unsure", "Tap again to set", () => testRatings("none"))),
+        h("div", { class: "tool-grid" },
+          confirmButton("All confident", "Tap All confident again to set every dot point Confident.", "tool-progress-note", () => testRatings("all")),
+          confirmButton("Mixed", "Tap Mixed again to set a mix of ratings.", "tool-progress-note", () => testRatings("mixed")),
+          confirmButton("All unsure", "Tap All unsure again to set every dot point Unsure.", "tool-progress-note", () => testRatings("none"))),
         h("button", { type: "button", class: "btn small primary", id: "tool-restore", hidden: readKey(BACKUP_KEY) === null, onclick: restoreRatings }, "Put my ratings back"),
         toolNote("tool-progress-note")),
       adminSection("replay", "Replay moments",
@@ -1542,7 +1683,7 @@
     const r = m.getBoundingClientRect();
     dotBurst(r.left + r.width / 2, r.top + r.height / 2, 12);
     const fa = dpIndex[dpId].focus;
-    if (fa.dotpoints.every((x) => status(x.id) === "confident")) {
+    if (fa.dotpoints.every((x) => status(x.id) === "confident") && !goldEarned) { // the last one plays the unlock instead
       setTimeout(() => dotShower(40), 350);
     }
   }

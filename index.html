@@ -530,6 +530,9 @@ dialog.sheet::backdrop { background: rgba(18, 24, 21, 0.24); }
 .tool-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 .tool-buttons:empty { display: none; }
 .btn.armed { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+/* fixed, equal buttons: the first tap only tints the button, so nothing moves before the second tap */
+.tool-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tool-grid .btn { width: 100%; padding-inline: 6px; justify-content: center; text-align: center; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
 .tool-note:empty { display: none; }
 .tool-note[data-kind="ok"] { color: var(--good); }
 .tool-note[data-kind="warn"] { color: var(--warn); }
@@ -843,6 +846,33 @@ textarea.field { min-height: 100px; resize: vertical; }
 .intro-mark .brand-dot { transform-box: fill-box; transform-origin: center; }
 /* easter-egg dots float above everything and never catch clicks */
 .fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 80; overflow: hidden; }
+/* the gold unlock animation (js/app.js playUnlock): a dimmed stage, the logo's dot, a ring of 39 dots and a count */
+.unlock-wrap { position: fixed; inset: 0; z-index: 90; cursor: pointer; }
+.unlock { position: absolute; inset: 0; overflow: hidden; }
+.unlock-veil { position: absolute; inset: 0; background: var(--paper); opacity: 0; transition: background-color 0.8s ease; }
+.unlock-hero { position: absolute; }
+.unlock-hero svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.u-dot { fill: var(--hl); transition: fill 0.8s ease; }
+.u-ring { fill: none; stroke: var(--ink); stroke-width: 6.5; stroke-linecap: round; stroke-dasharray: 100 100; stroke-dashoffset: 100; transition: stroke 0.8s ease; }
+.u-eyes { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.u-eyes ellipse { fill: #18211d; }
+.u-face { fill: none; stroke: #18211d; stroke-width: 2.2; stroke-linecap: round; opacity: 0; transition: opacity 0.3s ease; }
+.unlock.gilded .u-ring { stroke: var(--gold, #b8954a); }
+.unlock.gilded .u-eyes { opacity: 0 !important; }
+.unlock.gilded .u-face { opacity: 1; }
+.unlock-orbit { position: absolute; width: 0; height: 0; }
+.unlock-dot { position: absolute; border-radius: 50%; background: var(--hl); box-shadow: 0 0 0 1.5px var(--ink); transition: background-color 0.8s ease, box-shadow 0.8s ease; }
+.unlock.gilded .unlock-dot { box-shadow: 0 0 0 1.5px var(--paper), 0 0 0 2.5px var(--silver, #b7bcc2); }
+.unlock.gilded .unlock-dot.silver { background: var(--silver, #b7bcc2); }
+.unlock-count {
+  position: absolute; left: 0; right: 0; text-align: center; opacity: 0;
+  font-family: var(--font-display); font-weight: 800; font-size: clamp(1.75rem, 1.2rem + 2.4vw, 3rem); letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums; color: var(--ink); transition: color 0.8s ease;
+}
+.unlock.gilded .unlock-count { color: var(--gold-text, var(--ink)); }
+.unlock-skip { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+.unlock-skip:not(:focus-visible) { width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
+.unlock-skip:focus-visible { min-height: 44px; padding: 8px 16px; border-radius: var(--r-sm); border: 1px solid var(--ink); background: var(--surface); color: var(--ink); font-weight: 600; }
 .fx-dot { position: absolute; border-radius: 50%; border: 1.5px solid var(--ink); }
 
 /* slide-open panels: dot points, examples, flashcard answers */
