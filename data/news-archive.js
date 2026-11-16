@@ -2,6 +2,36 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-b1ddc4b66e",
+  "title": "If Australians don’t trust the RBA on inflation, the interest rate pain may have to get worse",
+  "date": "2026-11-17",
+  "published": "2026-11-16T18:23:03Z",
+  "outlet": "The Conversation",
+  "url": "https://theconversation.com/if-australians-dont-trust-the-rba-on-inflation-the-interest-rate-pain-may-have-to-get-worse-296141",
+  "desc": "The good news? Another rate rise before Christmas looks unlikely.",
+  "keyFigure": "",
+  "dotpoints": [
+   "mp-cash-rate",
+   "iss-inflation-measure"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-c0fc41399b",
+  "title": "Rudd-era mining tax could have boosted budget by $135b",
+  "date": "2026-11-17",
+  "published": "2026-11-16T18:00:00Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-17/kevin-rudd-labor-mining-super-profits-tax-budget-135-billion-pbo/107389174",
+  "desc": "Labor's abandoned mining tax, which led to the 2010 toppling of Kevin Rudd, could have improved the budget by $135 billion, a Parliamentary Budget Office analysis finds.",
+  "keyFigure": "$135b",
+  "dotpoints": [
+   "fp-stance",
+   "gov-tax-reform"
+  ],
+  "also": []
+ },
+ {
   "id": "n-26ba3dc0cd",
   "title": "Canada could work with Chinese automakers if US trade talks fail, says Carney",
   "date": "2026-11-16",
