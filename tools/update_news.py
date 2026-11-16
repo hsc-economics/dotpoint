@@ -11,6 +11,11 @@ always sends readers to the original article.
 
 If too few feeds answer, the old file is kept, so a bad network day never empties the section.
 The file is only rewritten when the list of stories changes.
+
+It also keeps data/news-archive.js, which only grows: every story that links clearly to a dot point is
+saved there for two years and shown on the Examples page as a "News report". Each one keeps the
+outlet's own one-line summary of the story (credited and linked, as a feed reader would show it), a key
+figure taken from the headline where there is one, and the dot points it links to.
 """
 import html
 import json
@@ -18,12 +23,19 @@ import math
 import re
 import sys
 import urllib.request
+import hashlib
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 OUT = Path(__file__).resolve().parent.parent / "data" / "news.js"
+ARCHIVE = OUT.parent / "news-archive.js"
+ARCHIVE_DAYS = 730                           # keep two years of stories
+ARCHIVE_MIN = {"economy": 3, "world": 3.5}   # how closely a story must link to the syllabus to be kept
+NOT_ARTICLES = ("/videos/", "/av/", "/sounds/", "/audio/", "/live/", "/podcasts/")
+SYDNEY = ZoneInfo("Australia/Sydney")
 UA = "Mozilla/5.0 (compatible; DotpointNews/1.0; +https://hsc-economics.github.io/dotpoint/)"
 MAX_AGE = timedelta(days=4)
 PER_SECTION = 12
@@ -59,7 +71,7 @@ TOPICS = {
     "hh-min-wage": ["minimum wage", "wage", "wages", "pay rise", "pay rises", "pay deal"],
     "fin-housing": ["housing", "house prices", "home prices", "home loan", "home loans", "mortgage", "mortgages",
                     "rent", "rents", "renters", "property market"],
-    "fp-stance": ["budget", "deficit", "surplus", "government spending", "stimulus", "national debt"],
+    "fp-stance": ["budget", "budget deficit", "budget surplus", "fiscal", "government spending", "stimulus", "national debt"],
     "gov-tax-reform": ["tax", "taxes", "taxation", "gst", "negative gearing", "capital gains", "tax cut", "tax cuts"],
     "iss-growth-real-gdp": ["gdp", "economic growth", "recession", "economy grew", "economy shrank", "economic output"],
     "mkt-power-abuse": ["merger", "mergers", "takeover", "acquisition", "collusion", "cartel", "price gouging"],
@@ -72,7 +84,8 @@ TOPICS = {
     "iss-growth-trends": ["productivity"],
     "fin-role": ["bank", "banks", "banking", "lending", "lenders", "credit", "crypto", "stock market", "shares", "asx",
                  "bond market", "bonds"],
-    "lm-safety-net": ["fair work", "enterprise agreement", "industrial action", "strike", "strikes", "union", "unions"],
+    "lm-safety-net": ["fair work", "enterprise agreement", "industrial action", "general strike", "strike action",
+                      "workers strike", "on strike", "walkout", "union", "unions"],
     "mkt-gov-intervention": ["subsidy", "subsidies", "price cap", "price caps", "regulator", "regulation"],
 }
 # Government and world affairs: enough to keep a story from a world feed, but no dot point link.
@@ -174,9 +187,11 @@ def read_feed(feed):
         when = parse_date(child_text(el, "pubDate", "published", "updated", "date"))
         if not (title and link and link.startswith("https://") and when):
             continue
-        summary = clean(child_text(el, "description", "summary", "encoded"))[:600]
-        stories.append({"title": title, "url": link.split("?")[0],
-                        "outlet": feed["outlet"], "section": feed["section"], "when": when, "summary": summary})
+        raw = child_text(el, "description", "summary", "encoded")
+        summary = clean(raw)[:600]
+        lede = clean(re.split(r"</p>|<br\s*/?>", raw, maxsplit=1)[0])  # the first paragraph: the outlet's own summary
+        stories.append({"title": title, "url": link.split("?")[0], "outlet": feed["outlet"],
+                        "section": feed["section"], "when": when, "summary": summary, "lede": lede})
     return stories
 
 
@@ -232,6 +247,8 @@ def rank(stories, now):
             "published": lead["when"].strftime("%Y-%m-%dT%H:%M:%SZ"),
             "dotpoints": topics_for(lead["title"]),
             "also": [{"outlet": s["outlet"], "url": s["url"]} for s in outlets[1:4]],
+            # for the archive only; dropped before data/news.js is written
+            "_score": lead["score"], "_section": section, "_lede": lead["lede"],
         }))
     picked = {}
     for k, v in out.items():
@@ -241,6 +258,96 @@ def rank(stories, now):
                 count[item["outlet"]] = count.get(item["outlet"], 0) + 1
                 picked[k].append(item)
     return picked
+
+
+# ---------- the archive ----------
+
+# A figure worth quoting from a headline: money ("$590 million") or a rate ("4.3%", "100 basis points").
+FIGURE = re.compile(r"[-−]?[$£€](?:US)?\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:bn|b|billion|m|million|tn|trillion|k)\b)?"
+                    r"|[-−]?\d[\d,]*(?:\.\d+)?\s?(?:%|per cent\b|percentage points?\b|basis points\b|bn\b|billion\b|million\b|trillion\b)")
+# Sign-up lines and other furniture some feeds add after the summary.
+FEED_JUNK = re.compile(r"\s*(?:Get our\b|Sign up\b|Continue reading|Read more\b|Follow our\b).*$", re.S)
+
+
+def key_figure(*texts):
+    """The first figure in the headline, or failing that in the summary."""
+    for t in texts:
+        m = FIGURE.search(t or "")
+        if m:
+            return re.sub(r"\s?per cent\b", "%", m.group(0).strip())
+    return ""
+
+
+def short_desc(summary, title):
+    """The outlet's own summary, cut to its first sentence (about 220 characters at most)."""
+    s = FEED_JUNK.sub("", summary or "")
+    s = re.sub(r"^Media release number [\d-]+:\s*", "", s).strip()
+    if not s or s.lower().rstrip(".") == title.lower().rstrip("."):
+        return ""
+    m = re.match(r"(.{40,220}?[.!?])(?=\s|$)", s)
+    if m:
+        return m.group(1)
+    if len(s) <= 220:
+        return s
+    return s[:217].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+
+
+def worth_keeping(item):
+    """Articles (not videos, podcasts or live blogs) that link clearly to the syllabus."""
+    t = item["title"].lower()
+    if not item["dotpoints"] or any(p in item["url"] for p in NOT_ARTICLES):
+        return False
+    if t.startswith(("watch:", "listen:", "live:", "in pictures")) or "podcast" in t or "as it happened" in t:
+        return False
+    return item["_score"] >= ARCHIVE_MIN[item["_section"]]
+
+
+def read_js(path):
+    return json.loads(path.read_text(encoding="utf-8").split("=", 1)[1].strip().rstrip(";"))
+
+
+def update_archive(sections, now):
+    old = read_js(ARCHIVE) if ARCHIVE.exists() else []
+    items = json.loads(json.dumps(old))
+    by_url = {}
+    for it in items:
+        for u in [it["url"]] + [a["url"] for a in it["also"]]:
+            by_url[u] = it
+    added = 0
+    for sec in ("economy", "world"):
+        for s in sections[sec]:
+            if not worth_keeping(s):
+                continue
+            tellings = [{"outlet": s["outlet"], "url": s["url"]}] + s["also"]
+            known = next((by_url[t["url"]] for t in tellings if t["url"] in by_url), None)
+            if known:  # seen before: just note any other outlets now covering it
+                for t in tellings:
+                    if (t["url"] not in by_url and t["outlet"] != known["outlet"] and len(known["also"]) < 4
+                            and all(a["outlet"] != t["outlet"] for a in known["also"])):
+                        known["also"].append(t)
+                        by_url[t["url"]] = known
+                continue
+            when = datetime.strptime(s["published"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            desc = short_desc(s["_lede"], s["title"])
+            entry = {
+                "id": "n-" + hashlib.sha1(s["url"].encode()).hexdigest()[:10],
+                "title": s["title"], "date": when.astimezone(SYDNEY).strftime("%Y-%m-%d"), "published": s["published"],
+                "outlet": s["outlet"], "url": s["url"], "desc": desc,
+                "keyFigure": key_figure(s["title"], desc), "dotpoints": s["dotpoints"], "also": s["also"],
+            }
+            items.append(entry)
+            added += 1
+            for t in tellings:
+                by_url[t["url"]] = entry
+    cutoff = (now - timedelta(days=ARCHIVE_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    items = sorted((i for i in items if i["published"] >= cutoff), key=lambda i: i["published"], reverse=True)
+    if items == old:
+        print("No change to the news archive.")
+        return
+    ARCHIVE.write_text("// Generated by tools/update_news.py: news reports kept for the Examples page. Each links to the\n"
+                       "// original article; desc is the outlet's own one-line summary of it.\n"
+                       "globalThis.DP_NEWS_ARCHIVE = " + json.dumps(items, indent=1, ensure_ascii=False) + ";\n", encoding="utf-8")
+    print(f"Wrote {ARCHIVE.relative_to(ARCHIVE.parent.parent)}: {added} new, {len(items)} stories in all.")
 
 
 def main():
@@ -261,6 +368,9 @@ def main():
     if len(sections["economy"]) < 4 or len(sections["world"]) < 4:
         print("Too few recent stories, so data/news.js was left as it was.", file=sys.stderr)
         return
+
+    update_archive(sections, now)
+    sections = {k: [{f: v for f, v in it.items() if not f.startswith("_")} for it in v] for k, v in sections.items()}
 
     sources = []
     for f in FEEDS:

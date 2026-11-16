@@ -19,6 +19,10 @@
   const deck = L.buildDeck(SY, EV, ST);
   const dpIndex = L.dotpointIndex(SY);
   const evById = Object.fromEntries(EV.map((e) => [e.id, e]));
+  // The Examples page and search also list the news reports collected automatically (see tools/update_news.py)
+  const NEWS_EV = L.newsReports(globalThis.DP_NEWS_ARCHIVE, dpIndex);
+  const ALL_EV = EV.concat(NEWS_EV);
+  const EV_PAGE = 30;
   const indById = Object.fromEntries(ST.indicators.map((i) => [i.id, i]));
   const VIEWS = ["today", "syllabus", "evidence", "stats", "drills", "essay"];
   const STATUS_LABEL = { none: "Unsure", shaky: "Getting there", confident: "Confident" };
@@ -874,7 +878,7 @@
     box.replaceChildren();
     const q = (ui.homeQuery || "").trim();
     if (!q) return;
-    const r = L.searchAll(q, SY, EV, ST);
+    const r = L.searchAll(q, SY, ALL_EV, ST);
     const total = r.dotpoints.length + r.examples.length + r.stats.length;
     if (!total) {
       box.append(h("p", { class: "empty" }, `Nothing matches "${q}". Try a broader word.`));
@@ -1005,8 +1009,8 @@
     if (!evSkeleton) {
       root.replaceChildren();
       root.append(viewHead("evidence", "Real-world examples",
-        "Decisions, court cases, laws, reports and data releases you can cite. Each has its date, a short quote from the source and a link to it."));
-      const types = [...new Set(EV.map((e) => e.type))].sort();
+        "Decisions, court cases, laws, reports and data releases you can cite, each checked by hand against its source. News reports are added automatically from trusted outlets every day, so the list keeps growing."));
+      const types = [...new Set(ALL_EV.map((e) => e.type))].sort();
       const side = h("aside", { class: "filter-side", "aria-label": "Filters" },
         h("label", { for: "ev-search" }, "Search",
           h("input", { type: "search", id: "ev-search", class: "field", placeholder: "Words, names, numbers", autocomplete: "off" })),
@@ -1045,6 +1049,7 @@
       });
       evSkeleton = true;
     }
+    ui.evShown = EV_PAGE;
     $("ev-search").value = ui.query;
     $("ev-focus").value = ui.fFocus;
     $("ev-type").value = ui.fType;
@@ -1054,7 +1059,7 @@
   }
 
   function filteredEvidence() {
-    let list = L.searchEvidence(EV, dpIndex, ui.query);
+    let list = L.searchEvidence(ALL_EV, dpIndex, ui.query);
     const byRelevance = ui.sort === "rel" && ui.query.trim();
     if (!byRelevance) list.sort((a, b) => (ui.sort === "old" ? (a.date > b.date ? 1 : -1) : (a.date < b.date ? 1 : -1)));
     if (ui.fFocus !== "all") list = list.filter((e) => e.dotpoints.some((id) => dpIndex[id] && dpIndex[id].focus.id === ui.fFocus));
@@ -1068,13 +1073,32 @@
     const ul = $("ev-list");
     ul.replaceChildren();
     const filtered = ui.query.trim() || ui.fFocus !== "all" || ui.fType !== "all" || ui.fFresh !== "all";
-    $("ev-count").textContent = filtered ? `${list.length} of ${EV.length} examples` : `${EV.length} examples`;
+    $("ev-count").textContent = filtered
+      ? `${list.length} of ${ALL_EV.length} examples`
+      : NEWS_EV.length ? `${EV.length} checked examples and ${NEWS_EV.length} news reports` : `${EV.length} examples`;
     $("ev-clear").hidden = !filtered;
     if (!list.length) {
       ul.append(h("li", { class: "empty" }, "No examples match. Try a broader word, or clear the filters."));
       return;
     }
-    for (const e of list) ul.append(evidenceCard(e));
+    // A page at a time, so the list stays quick as the news reports pile up. An example opened from
+    // elsewhere is always on the page.
+    const openAt = list.findIndex((e) => ui.openEv[e.id]);
+    const shown = Math.max(ui.evShown || EV_PAGE, openAt + 1);
+    for (const e of list.slice(0, shown)) ul.append(evidenceCard(e));
+    const left = list.length - shown;
+    if (left > 0) {
+      ul.append(h("li", { class: "ev-more" }, h("button", {
+        type: "button", class: "btn",
+        onclick: (ev) => {
+          ui.evShown = shown + EV_PAGE;
+          const next = shown;
+          renderEvidenceList();
+          const card = $("ev-list").children[next];
+          if (card && ev.detail === 0) card.querySelector(".ev-head").focus(); // keyboard: carry on from the first new card
+        },
+      }, `Show ${Math.min(EV_PAGE, left)} more`), h("span", { class: "small muted" }, `${shown} of ${list.length} shown`)));
+    }
   }
 
   function evidenceCard(e) {
@@ -1096,6 +1120,7 @@
       h("span", { class: "ev-figure" }, e.keyFigure),
       h("span", { class: "ev-meta" },
         h("span", { class: "chip" }, e.type),
+        e.auto && h("span", null, e.source.name),
         h("span", { class: `chip fresh-${fr.level}` }, fr.label),
         e.status === "developing" && h("span", { class: "chip developing" }, "Developing story"),
         h("span", null, `${L.fmtDate(e.date)}, ${L.ageText(fr.months)}`),
@@ -1111,8 +1136,9 @@
       return h("div", { class: "ev-body" },
         e.quote && h("figure", { class: "quote" },
           h("blockquote", null, e.quote.text),
-          h("figcaption", null, e.quote.url ? h("a", { href: e.quote.url, target: "_blank", rel: "noopener" }, e.quote.by + " ↗") : e.quote.by)),
-        h("p", null, e.summary),
+          h("figcaption", null, e.auto ? "The outlet's own summary: " : null,
+            e.quote.url ? h("a", { href: e.quote.url, target: "_blank", rel: "noopener" }, e.quote.by + " ↗") : e.quote.by)),
+        e.summary && h("p", null, e.summary),
         h("div", { class: "use" }, h("b", null, "Use it for: "), e.useFor),
         inds.length > 0 && h("div", { class: "pair" },
           h("p", { class: "sublabel" }, "Related statistics"),
@@ -1124,8 +1150,11 @@
           h("div", { class: "tags", "aria-label": "Dot points" }, e.dotpoints.filter((id) => dpIndex[id]).map((id) =>
             h("button", { type: "button", class: "tag", onclick: () => openDotpoint(id) }, dpIndex[id].short || dpIndex[id].text)))),
         h("div", { class: "source" },
-          h("span", null, "Source: ", h("a", { href: e.source.url, target: "_blank", rel: "noopener" }, e.source.name + " ↗")),
-          h("span", null, `Checked ${L.fmtDate(e.checked)}`),
+          h("span", null, e.auto ? "Read the article: " : "Source: ", h("a", { href: e.source.url, target: "_blank", rel: "noopener" }, e.source.name + " ↗")),
+          e.auto && e.also.length > 0 && h("span", null, "Also in ", e.also.flatMap((a, i) => [
+            i ? (i === e.also.length - 1 ? " and " : ", ") : "",
+            h("a", { href: a.url, target: "_blank", rel: "noopener" }, a.outlet)])),
+          h("span", null, e.auto ? "Collected automatically, not checked by hand" : `Checked ${L.fmtDate(e.checked)}`),
           h("button", { type: "button", class: "link-btn small", onclick: () => openReport(e.id, e.title) }, "Report a problem")));
   }
 

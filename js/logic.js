@@ -475,6 +475,23 @@
     return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
   }
 
+  // News reports kept by tools/update_news.py, shaped like example cards so the Examples page can list,
+  // filter and search them alongside the checked examples. The quote is the outlet's own one-line
+  // summary of the story; there is no summary in our own words, because nobody has written one.
+  function newsReports(archive, dpIndex) {
+    const lead = (s) => (/^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + s.slice(1) : s); // "Setting the cash rate" -> "setting…", "RBA objectives" stays
+    return (archive || []).map((n) => {
+      const dps = (n.dotpoints || []).filter((id) => dpIndex[id]);
+      return {
+        id: n.id, title: n.title, date: n.date, type: "News report", keyFigure: n.keyFigure || "",
+        quote: n.desc ? { text: n.desc, by: n.outlet, url: n.url } : null,
+        summary: "",
+        useFor: `Recent news on ${andList(dps.map((id) => lead(dpIndex[id].short)))}. Read the full article before you quote figures from it.`,
+        dotpoints: dps, source: { name: n.outlet, url: n.url }, also: n.also || [], auto: true,
+      };
+    }).filter((e) => e.dotpoints.length);
+  }
+
   // ---------- study sequence and site-wide search ----------
 
   // Which dot points this one builds on, and which build on it (from the branch structure).
@@ -678,7 +695,7 @@
     slug, dotpointIndex, dotpointStatus, tokens, searchEvidence,
     emptyProgress, normaliseProgress, progressCounts, mergeProgress, suggestions, cleanReport,
     MASTERY, skillLevel, skillTree, branchRows, nextSkill, streak, points, relatedIndicators, relatedExamples,
-    sequence, searchAll, timeAgo, recentNews, andList,
+    sequence, searchAll, timeAgo, recentNews, andList, newsReports,
   };
   root.DP_LOGIC = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

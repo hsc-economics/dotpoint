@@ -679,6 +679,7 @@ input[type="search"].field::-webkit-search-decoration { -webkit-appearance: none
 .ev-main { display: grid; gap: 6px; min-width: 0; } /* same gap as a filter label and its field */
 .ev-main .result-line { margin: 0; line-height: 1.5; } /* same line height as the filter labels beside it */
 .ev-tags { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.ev-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 16px; padding-top: 8px; grid-column: 1 / -1; }
 @media (max-width: 860px) {
   .ev-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .filter-side { position: static; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
@@ -912,6 +913,7 @@ textarea.field { min-height: 100px; resize: vertical; }
 <script src="data/stats.js"></script>
 <script src="data/questions.js"></script>
 <script src="data/news.js"></script>
+<script src="data/news-archive.js"></script>
 <script src="data/config.js"></script>
 <script src="js/logic.js"></script>
 <script src="js/app.js"></script>

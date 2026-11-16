@@ -5,6 +5,7 @@ load("data/evidence.js");
 load("data/stats.js");
 load("data/questions.js");
 load("data/news.js");
+load("data/news-archive.js");
 load("js/logic.js");
 
 const L = DP_LOGIC, SY = DP_SYLLABUS, EV = DP_EVIDENCE, ST = DP_STATS, NEWS = DP_NEWS;
@@ -445,7 +446,7 @@ test("page: every element id used by app.js exists in index.html or is created b
   for (const id of new Set(used)) ok(html.includes(`id="${id}"`) || created.has(id), `missing #${id}`);
 });
 test("page: scripts load in dependency order", () => {
-  const order = ["data/syllabus.js", "data/evidence.js", "data/stats.js", "data/questions.js", "data/news.js", "data/config.js", "js/logic.js", "js/app.js"].map((f) => html.indexOf(`src="${f}"`));
+  const order = ["data/syllabus.js", "data/evidence.js", "data/stats.js", "data/questions.js", "data/news.js", "data/news-archive.js", "data/config.js", "js/logic.js", "js/app.js"].map((f) => html.indexOf(`src="${f}"`));
   ok(order.every((x, i) => x > 0 && (i === 0 || x > order[i - 1])), JSON.stringify(order));
 });
 test("page: no document skeleton tags (the publisher adds them)", () => {
@@ -537,6 +538,50 @@ test("settings: the panel has a theme choice and a hold-to-reset button", () => 
   const app = read("js/app.js");
   for (const k of ["dotpoint.progress.v1", "dotpoint.essayDraft.v1", "dotpoint.essays.v1"]) ok(app.includes(k), k);
   ok(/async function resetAll\(\)[\s\S]*?localStorage.removeItem\(DRAFT_KEY\)[\s\S]*?Essays.clear\(\)/.test(app), "reset clears the draft and essays");
+});
+
+// ---------- news archive ----------
+test("news archive: every report has a headline, date, https link and known outlet", () => {
+  const A = DP_NEWS_ARCHIVE;
+  ok(Array.isArray(A) && A.length > 0, "has reports");
+  const ids = new Set(), urls = new Set();
+  for (const n of A) {
+    ok(/^n-[0-9a-f]{10}$/.test(n.id) && !ids.has(n.id), `${n.title}: id`);
+    ids.add(n.id);
+    ok(n.title && n.title.length < 300, `${n.id}: title`);
+    ok(L.parseISO(n.date) && !isNaN(Date.parse(n.published)), `${n.id}: dates`);
+    ok(NEWS.sources.includes(n.outlet), `${n.id}: outlet ${n.outlet}`);
+    ok(n.desc.length <= 230, `${n.id}: summary is one short line`);
+    for (const u of [n.url, ...n.also.map((a) => a.url)]) {
+      ok(/^https:\/\//.test(u), `${n.id}: url`);
+      ok(!urls.has(u), `${n.id}: ${u} appears twice`);
+      urls.add(u);
+    }
+    ok(n.dotpoints.length >= 1 && n.dotpoints.length <= 2, `${n.id}: one or two dot points`);
+    for (const id of n.dotpoints) ok(dpIndex[id], `${n.id} -> ${id}`);
+  }
+  ok(A.every((n, i) => i === 0 || A[i - 1].published >= n.published), "newest first");
+});
+test("news archive: reports become example cards that search finds", () => {
+  const rep = L.newsReports(DP_NEWS_ARCHIVE, dpIndex);
+  eq(rep.length, DP_NEWS_ARCHIVE.length);
+  for (const e of rep) {
+    ok(e.auto && e.type === "News report" && e.source.url.startsWith("https://"), e.id);
+    ok(/^Recent news on .+\. Read the full article/.test(e.useFor), e.useFor);
+  }
+  const sample = { id: "n-0000000000", title: "Reserve Bank lifts cash rate", date: "2026-11-03", published: "2026-11-03T03:30:00Z",
+    outlet: "ABC News", url: "https://example.com/a", desc: "The RBA raised rates.", keyFigure: "4.85%", dotpoints: ["mp-cash-rate", "nope"], also: [] };
+  const [e] = L.newsReports([sample], dpIndex);
+  eq(e.dotpoints, ["mp-cash-rate"]);
+  eq(e.quote, { text: "The RBA raised rates.", by: "ABC News", url: "https://example.com/a" });
+  ok(e.useFor.startsWith(`Recent news on ${dpIndex["mp-cash-rate"].short[0].toLowerCase()}`), e.useFor);
+  ok(L.searchEvidence([e], dpIndex, "lifts cash").length === 1, "found by its headline");
+  eq(L.newsReports([{ ...sample, dotpoints: ["nope"] }], dpIndex), []);
+});
+test("news archive: the collector keeps strikes about work, not air strikes", () => {
+  const py = read("tools/update_news.py");
+  const line = py.split("\n").find((l) => l.includes('"lm-safety-net"'));
+  ok(line && !/"strike"|"strikes"/.test(line), line);
 });
 
 test("page: has a short title", () => { const m = /<title>([^<]+)<\/title>/.exec(html); ok(m && m[1].split(" ").length <= 4, m && m[1]); });
