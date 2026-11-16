@@ -201,8 +201,10 @@
   }
 
   // A shower of dots falling across the whole screen: the celebration.
-  function dotShower(count) {
+  // spread is how long, in ms, new dots keep starting to fall: a longer spread is a longer rain.
+  function dotShower(count, spread = 500) {
     if (reducedMotion()) return;
+    const slow = spread > 1000 ? 700 : 0; // a long rain also falls a little slower
     const layer = h("div", { class: "fx-layer", "aria-hidden": "true" });
     document.body.append(layer);
     const n = count || 36;
@@ -214,9 +216,9 @@
       motion(dot, [
         { transform: "translate(0, 0)", opacity: 1 },
         { transform: `translate(${drift}px, calc(100vh + 48px))`, opacity: 0.9 },
-      ], { duration: 1400 + Math.random() * 1200, delay: Math.random() * 500, easing: "cubic-bezier(.45,.05,.75,.6)", fill: "forwards" });
+      ], { duration: 1400 + slow + Math.random() * 1200, delay: Math.random() * spread, easing: "cubic-bezier(.45,.05,.75,.6)", fill: "forwards" });
     }
-    setTimeout(() => layer.remove(), 3400);
+    setTimeout(() => layer.remove(), spread + slow + 2900);
   }
 
   // The opening moment, once per visit: three dot points are jotted down like notes, their lines
@@ -508,7 +510,7 @@
     goldEarned = L.syllabusComplete(SY, progress, deck, TODAY);
     syncGoldControls();
     const on = goldOn();
-    if (celebrate && goldEarned && !was && on && !goldForced()) setTimeout(goldUnlock, 600);
+    if (celebrate && goldEarned && !was && on && !goldForced()) setTimeout(goldUnlock, 350);
     else applyGold(on);
   }
 
@@ -548,8 +550,11 @@
     const cx = vw / 2, cy = vh * 0.44;
     const n = SY.focusAreas.reduce((t, fa) => t + fa.dotpoints.length, 0);
     const ringR = size * 0.98, dotSize = Math.max(8, Math.round(size * 0.075));
-    const timers = [], anims = [];
-    const later = (ms, fn) => timers.push(setTimeout(fn, ms));
+    const anims = [], steps = [];
+    // Every step runs off one clock, an animation that lasts the whole show, so the steps stay in time with
+    // the movement even when the browser is slow to start drawing (separate timers drifted ahead of it).
+    const at = (ms, fn) => steps.push([ms, fn]);
+    let raf = 0;
     const play = (el, frames, opts) => { const a = motion(el, frames, opts); if (a) anims.push(a); return a; };
     const back = document.activeElement;
 
@@ -574,7 +579,7 @@
     const finish = () => {
       if (finished) return;
       finished = true;
-      timers.forEach(clearTimeout);
+      cancelAnimationFrame(raf);
       anims.forEach((a) => { try { a.cancel(); } catch (e) { /* already gone */ } });
       document.removeEventListener("keydown", onKey, true);
       wrap.remove();
@@ -589,23 +594,23 @@
     document.addEventListener("keydown", onKey, true);
     wrap.addEventListener("click", finish);
 
-    // 0 to 1.4 s: the page dims and the dot drops in, bouncing
-    play(veil, [{ opacity: 0 }, { opacity: 0.94 }], { duration: 500, fill: "forwards" });
+    // 0 to 1 s: the page dims and the dot drops in, bouncing
+    play(veil, [{ opacity: 0 }, { opacity: 0.94 }], { duration: 400, fill: "forwards" });
     play(hero, [
       { transform: `translateY(${-(cy + size)}px) scale(0.9, 1.1)` },
       { transform: "translateY(0) scale(1.2, 0.8)", offset: 0.5 },
       { transform: "translateY(-34px) scale(0.94, 1.07)", offset: 0.68 },
       { transform: "translateY(0) scale(1.07, 0.94)", offset: 0.84 },
-      { transform: "translateY(0) scale(1)" }], { duration: 1150, delay: 250, easing: "cubic-bezier(.45,0,.55,1)", fill: "backwards" });
-    // 1.4 to 2.8 s: the pen draws its circle, the dot opens its eyes and blinks
-    play(hero.querySelector(".u-ring"), [{ strokeDashoffset: 100 }, { strokeDashoffset: 0 }], { duration: 900, delay: 1400, easing: "ease-in-out", fill: "forwards" });
-    play(hero.querySelector(".u-eyes"), [{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 2250, fill: "forwards" });
-    play(hero.querySelector(".u-eyes"), [{ transform: "scaleY(1)" }, { transform: "scaleY(0.1)" }, { transform: "scaleY(1)" }], { duration: 260, delay: 2750 });
-    play(count, [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 300, delay: 2500, fill: "forwards" });
+      { transform: "translateY(0) scale(1)" }], { duration: 1000, easing: "cubic-bezier(.45,0,.55,1)" });
+    // 0.9 to 2.2 s: the pen draws its circle as the bounce settles, the dot opens its eyes and blinks
+    play(hero.querySelector(".u-ring"), [{ strokeDashoffset: 100 }, { strokeDashoffset: 0 }], { duration: 800, delay: 880, easing: "ease-in-out", fill: "forwards" });
+    play(hero.querySelector(".u-eyes"), [{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 1500, fill: "forwards" });
+    play(hero.querySelector(".u-eyes"), [{ transform: "scaleY(1)" }, { transform: "scaleY(0.1)" }, { transform: "scaleY(1)" }], { duration: 260, delay: 1950 });
+    play(count, [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 300, delay: 1600, fill: "forwards" });
 
-    // 2.8 to 5.4 s: one dot per dot point flies in from the edges and lands on a ring; the count ticks up
+    // 1.7 to 4.5 s: one dot per dot point flies in from the edges and lands on a ring; the count ticks up
     const dots = [];
-    const span = 2300 / n;
+    const span = 2200 / n;
     for (let i = 0; i < n; i++) {
       const a = -Math.PI / 2 + (i / n) * Math.PI * 2;
       const fx = Math.cos(a) * ringR, fy = Math.sin(a) * ringR;
@@ -613,26 +618,26 @@
       const dot = h("span", { class: "unlock-dot" + (i % 3 === 1 ? " silver" : ""), style: `width:${dotSize}px;height:${dotSize}px;left:${fx - dotSize / 2}px;top:${fy - dotSize / 2}px` });
       orbit.append(dot);
       dots.push([dot, fx, fy]);
-      const delay = 2800 + i * span;
+      const delay = 1700 + i * span;
       play(dot, [
         { transform: `translate(${Math.cos(from) * far - fx}px, ${Math.sin(from) * far - fy}px) scale(0.6)`, opacity: 0 },
         { opacity: 1, offset: 0.3 },
         { transform: "translate(0, 0) scale(1.35)", offset: 0.8 },
         { transform: "translate(0, 0) scale(1)", opacity: 1 }], { duration: 620, delay, easing: "cubic-bezier(.2,.8,.3,1)", fill: "backwards" });
-      later(delay + 500, () => { count.textContent = `${i + 1}/${n}`; });
+      at(delay + 500, () => { count.textContent = `${i + 1}/${n}`; });
     }
 
-    // 5.4 to 7.5 s: everything turns gold, the face goes happy, the ring of dots spins once
-    later(5400, () => {
+    // 4.6 to 7.1 s: everything turns gold, the face goes happy, the ring of dots spins once
+    at(4600, () => {
       stage.classList.add("gilded");
       applyGold(true);
       play(count, [{ transform: "scale(1)" }, { transform: "scale(1.25)" }, { transform: "scale(1)" }], { duration: 520, easing: "cubic-bezier(.3,1.6,.5,1)" });
       play(hero, [{ transform: "scale(1)" }, { transform: "scale(1.12)" }, { transform: "scale(1)" }], { duration: 520, easing: "cubic-bezier(.3,1.6,.5,1)" });
     });
-    play(orbit, [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }], { duration: 2000, delay: 5500, easing: "cubic-bezier(.6,0,.3,1)" });
+    play(orbit, [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }], { duration: 2400, delay: 4700, easing: "cubic-bezier(.6,0,.3,1)" });
 
-    // 7.6 to 9.2 s: the ring bursts outwards and falls like confetti
-    later(7600, () => {
+    // 7.2 to 8.9 s: the ring bursts outwards and falls like confetti
+    at(7200, () => {
       play(count, [{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" });
       for (const [dot, fx, fy] of dots) {
         const spread = 1.6 + Math.random() * 1.4;
@@ -645,18 +650,31 @@
       play(hero, [{ transform: "scale(1)" }, { transform: "scale(1.22, 0.86)" }, { transform: "scale(1)" }], { duration: 380, easing: "ease-out" });
     });
 
-    // 8.6 to 10 s: the dot flies up into the 39/39 mark (or the logo), and the page comes back
-    later(8600, () => {
+    // 8.3 to 9.8 s: the dot flies up into the 39/39 mark (or the logo), and the page comes back
+    let target = null;
+    at(8300, () => {
       const mark = $("done-mark");
-      const target = mark && mark.offsetWidth ? mark : document.querySelector(".brand-mark");
+      target = mark && mark.offsetWidth ? mark : document.querySelector(".brand-mark");
       const t = target.getBoundingClientRect();
       const tx = (mark && mark.offsetWidth ? t.left + 4 : t.left + t.width / 2) - cx, ty = t.top + t.height / 2 - cy;
       play(hero, [{ transform: "translate(0, 0) scale(1)", opacity: 1 }, { transform: `translate(${tx}px, ${ty}px) scale(${Math.max(0.06, 14 / size)})`, opacity: 0.4 }],
         { duration: 900, easing: "cubic-bezier(.55,0,.2,1)", fill: "forwards" });
       play(veil, [{ opacity: 0.94 }, { opacity: 0 }], { duration: 1100, delay: 250, fill: "forwards" });
-      later(950, () => play(target, [{ transform: "scale(1)" }, { transform: "scale(1.5)" }, { transform: "scale(1)" }], { duration: 420, easing: "cubic-bezier(.3,1.6,.5,1)" }));
     });
-    later(10000, finish);
+    at(9250, () => play(target, [{ transform: "scale(1)" }, { transform: "scale(1.5)" }, { transform: "scale(1)" }], { duration: 420, easing: "cubic-bezier(.3,1.6,.5,1)" }));
+    const SHOW = 9800;
+    const clock = stage.animate([{ visibility: "visible" }, { visibility: "visible" }], { duration: SHOW });
+    anims.push(clock);
+    steps.sort((a, b) => a[0] - b[0]);
+    const tick = () => {
+      if (finished) return;
+      const now = clock.currentTime || 0;
+      while (steps.length && steps[0][0] <= now) steps.shift()[1]();
+      if (now >= SHOW) { finish(); return; }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    clock.finished.then(() => { while (steps.length) steps.shift()[1](); finish(); }, () => {});
   }
 
   // The Gold finish switch in Settings: shown to anyone who has earned the finish, or opened it from the
@@ -854,7 +872,7 @@
         window.scrollTo(0, 0);
         introDot();
       } else if (what === "focus") {
-        dotShower(40);
+        dotShower(120, 2800);
         buddyReact("happy");
       } else if (what === "gold") {
         const was = goldOn();
@@ -1684,7 +1702,7 @@
     dotBurst(r.left + r.width / 2, r.top + r.height / 2, 12);
     const fa = dpIndex[dpId].focus;
     if (fa.dotpoints.every((x) => status(x.id) === "confident") && !goldEarned) { // the last one plays the unlock instead
-      setTimeout(() => dotShower(40), 350);
+      setTimeout(() => dotShower(120, 2800), 350);
     }
   }
 
