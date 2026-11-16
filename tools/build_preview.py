@@ -45,6 +45,8 @@ if out.exists():
 out.mkdir()
 for folder in ("js", "data", "icons"):
     shutil.copytree(ROOT / folder, out / folder)
+for proof in ROOT.glob("google*.html"):  # Google Search Console's ownership file; it must stay published
+    shutil.copy(proof, out / proof.name)
 page = (ROOT / "index.html").read_text(encoding="utf-8")
 
 

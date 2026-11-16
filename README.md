@@ -73,6 +73,10 @@ it into a card, tests it, publishes it and closes the issue, or comments with wh
 
 Everything works off Claude. Only account sync needs it; elsewhere progress is saved in the browser.
 
+Search: `google379b03ff488f9ee8.html` proves to Google Search Console that this site is yours. Don't delete it, or the
+site drops out of Search Console. `tools/build_preview.py` also writes `sitemap.xml` and the plain pages
+`dot-points.html` and `examples.html` for search engines.
+
 ## Rules for evidence cards
 
 1. Every fact must appear on the linked source page. Prefer primary sources (RBA, ABS, ACCC, ATO, Fair Work, budget.gov.au).
