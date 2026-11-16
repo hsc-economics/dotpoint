@@ -255,6 +255,12 @@
     return strong === cards.length ? "confident" : "shaky";
   }
 
+  // Every dot point in both years rated (or drilled to) confident: the gold finish easter egg.
+  function syllabusComplete(syllabus, progress, deck, today) {
+    const all = syllabus.focusAreas.flatMap((fa) => fa.dotpoints);
+    return all.length > 0 && all.every((dp) => dotpointStatus(dp.id, progress, deck, today) === "confident");
+  }
+
   // ---------- search ----------
 
   function tokens(s) {
@@ -779,7 +785,7 @@
     grade, isDue, dueQueue, dayNumber,
     latest, yearChange, fmtValue, fmtDelta, periodOf, citationSentence, sentenceValue, sourceShort, isDaily,
     statCards, evidenceCards, termCards, buildDeck,
-    slug, dotpointIndex, dotpointStatus, tokens, searchEvidence,
+    slug, dotpointIndex, dotpointStatus, syllabusComplete, tokens, searchEvidence,
     emptyProgress, normaliseProgress, progressCounts, mergeProgress, suggestions, cleanReport,
     MASTERY, skillLevel, skillTree, branchRows, nextSkill, streak, points, relatedIndicators, relatedExamples,
     sequence, searchAll, timeAgo, recentNews, andList, newsReports,

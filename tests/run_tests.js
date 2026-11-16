@@ -253,6 +253,19 @@ test("dotpointStatus: own rating wins, otherwise drills decide", () => {
   p.dotStatus["hh-min-wage"] = "shaky";
   eq(L.dotpointStatus("hh-min-wage", p, deck, D(TODAY)), "shaky");
 });
+test("gold finish: only when every Year 11 and Year 12 dot point is confident", () => {
+  const p = L.emptyProgress();
+  const all = SY.focusAreas.flatMap((f) => f.dotpoints);
+  ok(!L.syllabusComplete(SY, p, deck, D(TODAY)), "a new student");
+  for (const dp of all) p.dotStatus[dp.id] = "confident";
+  ok(L.syllabusComplete(SY, p, deck, D(TODAY)), "every dot point confident");
+  p.dotStatus[all[all.length - 1].id] = "shaky";
+  ok(!L.syllabusComplete(SY, p, deck, D(TODAY)), "one Year 12 dot point still shaky");
+  p.dotStatus[all[0].id] = "none";
+  delete p.dotStatus[all[all.length - 1].id];
+  ok(!L.syllabusComplete(SY, p, deck, D(TODAY)), "an unrated dot point");
+  ok(!L.syllabusComplete({ focusAreas: [] }, p, deck, D(TODAY)), "an empty syllabus never counts");
+});
 test("suggestions: a new student is told to start a drill", () => {
   const s = L.suggestions({ deck, progress: L.emptyProgress(), today: D(TODAY), dpIndex, evidence: EV });
   eq(s[0].kind, "drill"); eq(s[0].title, "Start a 5-minute drill");
@@ -634,6 +647,18 @@ test("resources: HSC exam packs have a paper for every year, and years are real"
 });
 test("resources: dot point tags all exist", () => {
   for (const i of RES.items) for (const d of i.dotpoints || []) ok(dpIndex[d], `${i.id} -> ${d}`);
+});
+test("gold finish: the page has its settings switch and styles", () => {
+  ok(html.includes('id="set-gold"') && html.includes('id="gold-seg"'), "settings switch");
+  ok(/id="set-gold"[^>]*hidden/.test(html), "hidden until earned");
+  ok(html.includes(':root[data-gold="on"]') && html.includes(':root[data-gold="on"][data-theme="dark"]'), "light and dark gold colours");
+  ok(app.includes("updateGold(true)") && app.includes("L.syllabusComplete"), "the app checks after each change");
+});
+test("admin: a padlock in settings opens a password form, and the panel stays hidden until unlocked", () => {
+  ok(html.includes('id="admin-lock"') && html.includes('id="admin-form"'), "padlock and form");
+  ok(/id="admin-body"[^>]*hidden/.test(html) && /id="admin-panel"[^>]*hidden/.test(html), "hidden at first");
+  ok(/const ADMIN_HASH = "[0-9a-f]{64}"/.test(app), "the app keeps only a SHA-256 hash of the password");
+  ok(app.includes("goldForced()"), "the admin switch can turn the secret theme on");
 });
 test("resources: the Papers tab is in the menu", () => ok(html.includes('data-nav="resources"') && html.includes('id="view-resources"')));
 

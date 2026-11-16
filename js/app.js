@@ -302,6 +302,7 @@
     saveLocal();
     Sync.schedule();
     updateBadge();
+    updateGold(true);
   }
 
   const Sync = {
@@ -398,6 +399,148 @@
     else swap();
   }
 
+  // ---------- the gold finish: an easter egg for rating every Year 11 and Year 12 dot point confident ----------
+
+  const GOLD_KEY = "dotpoint.gold";
+  const ADMIN_KEY = "dotpoint.admin";
+  const FORCE_KEY = "dotpoint.gold.force";
+  // SHA-256 of "dotpoint-admin:" + the admin password, so the password itself isn't in the page source.
+  // This is a static site, so it only keeps the secret theme out of casual reach, not a real lock.
+  const ADMIN_HASH = "10e1abf861afb0955db2d731eecde1782063dac0017ec793aa486cd8891b2d8b";
+  let goldEarned = false;
+
+  function goldWanted() {
+    try { return localStorage.getItem(GOLD_KEY) !== "off"; } catch (e) { return true; }
+  }
+
+  function readKey(k) {
+    try { return localStorage.getItem(k); } catch (e) { return null; }
+  }
+  function writeKey(k, v) {
+    try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* storage blocked */ }
+  }
+  const adminUnlocked = () => readKey(ADMIN_KEY) === "1";
+  const goldForced = () => adminUnlocked() && readKey(FORCE_KEY) === "on";
+  const goldOn = () => (goldEarned && goldWanted()) || goldForced();
+
+  function applyGold(on) {
+    if (on) document.documentElement.dataset.gold = "on";
+    else delete document.documentElement.dataset.gold;
+    const n = SY.focusAreas.reduce((sum, fa) => sum + fa.dotpoints.length, 0);
+    const markEl = $("done-mark");
+    markEl.hidden = !on;
+    markEl.textContent = `${n}/${n}`;
+    markEl.setAttribute("title", `All ${n} dot points confident`);
+    markEl.setAttribute("aria-label", `All ${n} dot points confident`);
+  }
+
+  // Called after every change to progress. celebrate is true only for a change the student just made,
+  // so the colours fade over when they rate the last dot point, rather than snapping, and not on every page load.
+  function updateGold(celebrate) {
+    const was = goldEarned;
+    goldEarned = L.syllabusComplete(SY, progress, deck, TODAY);
+    $("set-gold").hidden = !goldEarned;
+    const on = goldOn();
+    if (celebrate && goldEarned && !was && on && !goldForced()) setTimeout(goldUnlock, 600);
+    else applyGold(on);
+  }
+
+  function goldUnlock() {
+    if (!goldEarned || !goldWanted()) return; // un-rated again in the meantime
+    const swap = () => { applyGold(true); if (ui.view === "today") render("today"); };
+    if (typeof document.startViewTransition === "function" && !reducedMotion()) document.startViewTransition(swap);
+    else swap();
+    toast("All dot points confident");
+  }
+
+  function setGold(choice) {
+    try {
+      if (choice === "off") localStorage.setItem(GOLD_KEY, "off"); else localStorage.removeItem(GOLD_KEY);
+    } catch (e) { /* storage blocked: this visit only */ }
+    const swap = () => { applyGold(goldOn()); renderSettings(); if (ui.view === "today") render("today"); };
+    if (typeof document.startViewTransition === "function" && !reducedMotion()) document.startViewTransition(swap);
+    else swap();
+  }
+
+  // ---------- admin: a padlock in settings; the password opens a switch for the secret theme ----------
+
+  async function sha256(text) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  function renderAdmin() {
+    const open = !$("admin-body").hidden, unlocked = adminUnlocked();
+    const lock = $("admin-lock");
+    lock.setAttribute("aria-expanded", String(open));
+    lock.setAttribute("aria-label", unlocked ? "Admin, unlocked" : "Admin");
+    if (unlocked) lock.dataset.unlocked = ""; else delete lock.dataset.unlocked;
+    $("admin-form").hidden = unlocked;
+    $("admin-panel").hidden = !unlocked;
+    const force = goldForced() ? "on" : "off";
+    for (const b of $("admin-gold-seg").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.choice === force));
+  }
+
+  function closeAdmin() {
+    $("admin-body").hidden = true;
+    $("admin-pin").value = "";
+    $("admin-msg").textContent = "";
+    renderAdmin();
+  }
+
+  // Theme changes from the admin panel cross-fade like the theme switch does.
+  function refreshGold() {
+    const swap = () => { applyGold(goldOn()); renderSettings(); if (ui.view === "today") render("today"); };
+    if (typeof document.startViewTransition === "function" && !reducedMotion()) document.startViewTransition(swap);
+    else swap();
+  }
+
+  function setupAdmin() {
+    $("admin-lock").addEventListener("click", () => {
+      if (!$("admin-body").hidden) return closeAdmin();
+      $("admin-body").hidden = false;
+      renderAdmin();
+      if (!adminUnlocked()) $("admin-pin").focus({ preventScroll: true });
+      $("admin-body").scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+    });
+    $("admin-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const pin = $("admin-pin");
+      const msg = $("admin-msg");
+      if (!(window.crypto && crypto.subtle)) { msg.textContent = "Admin needs a secure (https) connection."; return; }
+      if ((await sha256("dotpoint-admin:" + pin.value.trim())) === ADMIN_HASH) {
+        writeKey(ADMIN_KEY, "1");
+        pin.value = "";
+        msg.textContent = "";
+        renderAdmin();
+        $("admin-gold-seg").querySelector("button").focus({ preventScroll: true });
+        $("admin-body").scrollIntoView({ block: "nearest" });
+      } else {
+        pin.value = "";
+        msg.textContent = "That's not the password.";
+        msg.scrollIntoView({ block: "nearest" });
+        motion(pin, [{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(6px)" },
+          { transform: "translateX(-4px)" }, { transform: "translateX(0)" }], { duration: 300, easing: "ease-out" });
+        pin.focus();
+      }
+    });
+    for (const b of $("admin-gold-seg").querySelectorAll("button")) b.addEventListener("click", () => {
+      writeKey(FORCE_KEY, b.dataset.choice === "on" ? "on" : null);
+      renderAdmin();
+      refreshGold();
+    });
+    $("admin-relock").addEventListener("click", () => {
+      const wasForced = goldForced();
+      writeKey(ADMIN_KEY, null);
+      writeKey(FORCE_KEY, null);
+      closeAdmin();
+      $("admin-lock").focus();
+      if (wasForced) refreshGold();
+    });
+    $("settings-dialog").addEventListener("close", closeAdmin);
+    renderAdmin();
+  }
+
   const HOLD_LABEL = "Hold to reset all progress";
   const COUNT_LABELS = [["dots", "dot point rated", "dot points rated"], ["cards", "flashcard practised", "flashcards practised"],
     ["days", "study day", "study days"], ["examples", "example opened", "examples opened"]];
@@ -410,6 +553,8 @@
   function renderSettings() {
     const choice = themeChoice();
     for (const b of $("theme-seg").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.choice === choice));
+    const gold = goldWanted() ? "on" : "off";
+    for (const b of $("gold-seg").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.choice === gold));
     const c = L.progressCounts(progress);
     $("set-counts").replaceChildren(...COUNT_LABELS.map(([k, one, many]) => h("div", { class: "set-count" },
       h("dt", null, c[k] === 1 ? one : many), h("dd", { "data-from": c[k] }, String(c[k])))));
@@ -677,6 +822,7 @@
   function renderAll() {
     render(ui.view);
     updateBadge();
+    updateGold(false);
   }
 
   function updateBadge() {
@@ -851,8 +997,11 @@
     const allSt = SY.focusAreas.flatMap((fa) => fa.dotpoints.map((dp) => status(dp.id)));
     const nConf = allSt.filter((x) => x === "confident").length;
     const nShaky = allSt.filter((x) => x === "shaky").length;
+    const gold = goldEarned && goldWanted();
     return h("section", { class: "study-band", "aria-labelledby": "h-study" },
       h("h2", { id: "h-study" }, "Your study"),
+      gold && h("p", { class: "gold-note" }, h("span", { class: "gold-seal", "aria-hidden": "true" }),
+        `${allSt.length} of ${allSt.length} dot points confident, Year 11 and Year 12.`),
       h("div", { class: "study-actions" },
         h("section", { class: "panel revise", "aria-labelledby": "h-revise" },
           h("div", null,
@@ -2268,6 +2417,9 @@
     sheet.addEventListener("click", (e) => { if (e.target === sheet) closeSettings(); }); // a click on the shaded page
     sheet.addEventListener("close", () => { delete $("settings-open").dataset.open; $("settings-open").focus(); });
     for (const b of $("theme-seg").querySelectorAll("button")) b.addEventListener("click", () => setTheme(b.dataset.choice));
+    for (const b of $("gold-seg").querySelectorAll("button")) b.addEventListener("click", () => setGold(b.dataset.choice));
+    setupAdmin();
+    updateGold(false);
     setupResetHold();
     $("report-form").addEventListener("submit", (e) => { e.preventDefault(); sendReport(); });
 

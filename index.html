@@ -484,6 +484,20 @@ dialog.sheet::backdrop { background: rgba(18, 24, 21, 0.24); }
 .set-count { display: flex; flex-direction: column-reverse; }
 .set-count dd { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--fs-lg); line-height: 1.15; font-variant-numeric: tabular-nums; }
 .set-count dt { font-size: var(--fs-sm); color: var(--muted); }
+/* the admin lock: a small padlock at the foot of the settings */
+.set-admin { display: grid; justify-items: end; margin-top: 8px; margin-right: -12px; }
+.admin-lock svg { width: 18px; height: 18px; }
+.admin-lock .shackle-open, .admin-lock[data-unlocked] .shackle-shut { display: none; }
+.admin-lock[data-unlocked] .shackle-open { display: inline; }
+.admin-body { justify-self: stretch; margin-right: 12px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.admin-form, .admin-panel { display: grid; gap: 10px; }
+.admin-form { padding: 0; margin: 0; }
+.admin-form label { font-weight: 600; }
+.admin-row { display: flex; gap: 8px; }
+.admin-row .field { flex: 1 1 auto; letter-spacing: 0.2em; }
+#admin-msg:empty { display: none; }
+#admin-msg { color: var(--bad); }
+.admin-panel .btn { justify-self: start; }
 
 /* hold to reset: a red bar sweeps across while it's held down, turning the words over as it passes */
 .hold-btn {
@@ -840,6 +854,53 @@ textarea.field { min-height: 100px; resize: vertical; }
   .res-table td { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   .res-table td::before { content: attr(data-label); color: var(--muted); }
 }
+/* ---------- the gold finish: an easter egg for rating every Year 11 and Year 12 dot point confident ----------
+   js/app.js sets data-gold="on" on the root element. Quiet on purpose: a champagne page, the yellow
+   becomes gold, and hairlines pair gold with silver. No gradients on text, no glow. */
+:root[data-gold="on"] {
+  --paper: #f4eee0; --surface: #fffdf8; --soft: #ebe4d2; --ink: #1d1a14; --ink-hover: #3a352b; --muted: #5c574b;
+  --rule: #d9d6cf; --rule-strong: #8f8a80; --hl: #cfae5a; --hl-soft: #f3e9cc; --on-hl: #1d1a14;
+  --chart-area: rgba(29, 26, 20, 0.05); --band: rgba(207, 174, 90, 0.3);
+  --gold: #b8954a; --gold-text: #7d5f1a; --silver: #b7bcc2; --silver-faint: rgba(150, 157, 166, 0.45);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-gold="on"]:not([data-theme="light"]) {
+    --paper: #13120f; --surface: #1b1a16; --soft: #23211c; --ink: #ece8df; --ink-hover: #d3cec3; --muted: #aaa397;
+    --rule: #34332f; --rule-strong: #77736b; --hl: #d2b26a; --hl-soft: rgba(210, 178, 106, 0.13); --on-hl: #1d1a14;
+    --chart-area: rgba(236, 232, 223, 0.06); --band: rgba(210, 178, 106, 0.16);
+    --gold: #a88a48; --gold-text: #d2b26a; --silver: #6f757d; --silver-faint: rgba(160, 167, 176, 0.3);
+  }
+}
+:root[data-gold="on"][data-theme="dark"] {
+  --paper: #13120f; --surface: #1b1a16; --soft: #23211c; --ink: #ece8df; --ink-hover: #d3cec3; --muted: #aaa397;
+  --rule: #34332f; --rule-strong: #77736b; --hl: #d2b26a; --hl-soft: rgba(210, 178, 106, 0.13); --on-hl: #1d1a14;
+  --chart-area: rgba(236, 232, 223, 0.06); --band: rgba(210, 178, 106, 0.16);
+  --gold: #a88a48; --gold-text: #d2b26a; --silver: #6f757d; --silver-faint: rgba(160, 167, 176, 0.3);
+}
+/* a gold hairline round the window with a silver one just inside it (wide screens only) */
+@media (min-width: 761px) {
+  [data-gold="on"] body::after {
+    content: ""; position: fixed; z-index: 29; pointer-events: none; inset: 12px; border-radius: 16px;
+    border: 1px solid var(--gold); outline: 1px solid var(--silver-faint); outline-offset: -5px;
+  }
+}
+[data-gold="on"] .topbar { border-bottom-color: var(--gold); }
+[data-gold="on"] .tabs { border-top-color: var(--gold); }
+[data-gold="on"] footer { border-top-color: var(--silver); }
+[data-gold="on"] .subject { border-left-color: var(--silver); }
+/* panels and cards: silver edges that turn gold under the pointer */
+[data-gold="on"] :is(.panel, .tile, .fa-tiles button, .res-table-wrap) { border-color: var(--silver); }
+[data-gold="on"] .study-band .panel { border-color: var(--silver-faint); }
+[data-gold="on"] :is(.tile, .fa-tiles button):hover { border-color: var(--gold); }
+[data-gold="on"] .study-band { border-block: 1px solid var(--silver-faint); }
+/* the flex: a small 39/39 by the logo, and one line on the home page */
+.done-mark {
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; color: var(--gold-text);
+  padding: 2px 8px; border: 1px solid var(--gold); border-radius: 999px; box-shadow: inset 0 0 0 2px var(--surface), inset 0 0 0 3px var(--silver-faint);
+  background: var(--surface); line-height: 1.4; white-space: nowrap;
+}
+.gold-note { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: var(--fs-sm); margin-top: -16px; }
+.gold-seal { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--hl); box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--silver); }
 </style>
 
 <script>try { var t = localStorage.getItem("dotpoint.theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
@@ -849,7 +910,7 @@ textarea.field { min-height: 100px; resize: vertical; }
 <header class="topbar">
   <div class="wrap">
     <a class="brand" href="#today" data-nav="today" aria-label="Dotpoint home"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><g class="brand-art"><circle class="brand-dot" cx="37" cy="37" r="21"/><path class="brand-line" d="M40 8 C24 2 6 13 6.5 30 C7 46 20 52.5 30 51.5 C44 50.5 51.5 40 50.5 27 C49.5 14 38 5.5 24 8.5"/><path class="brand-line brand-note" d="M23 26 C27 24.5 33 27 39.5 25"/></g></svg>Dotpoint</a>
-    <span class="subject">HSC Economics</span>
+    <span class="subject">HSC Economics</span><span class="done-mark" id="done-mark" hidden></span>
     <nav class="tabs" aria-label="Main">
       <button type="button" class="tab" data-nav="today">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Home</button>
@@ -933,6 +994,14 @@ textarea.field { min-height: 100px; resize: vertical; }
         <button type="button" data-choice="dark" aria-pressed="false">Dark</button>
       </div>
     </section>
+    <section class="set-group" id="set-gold" aria-labelledby="set-gold-h" hidden>
+      <h3 id="set-gold-h">Gold finish</h3>
+      <p class="small muted">Earned by rating every Year 11 and Year 12 dot point confident.</p>
+      <div class="seg" id="gold-seg" role="group" aria-labelledby="set-gold-h">
+        <button type="button" data-choice="on" aria-pressed="true">On</button>
+        <button type="button" data-choice="off" aria-pressed="false">Off</button>
+      </div>
+    </section>
     <section class="set-group" aria-labelledby="set-progress-h">
       <h3 id="set-progress-h">Your progress</h3>
       <p class="small muted" id="set-where">Saved in this browser only.</p>
@@ -940,6 +1009,28 @@ textarea.field { min-height: 100px; resize: vertical; }
       <button type="button" class="hold-btn" id="reset-hold" aria-describedby="reset-hint"><span class="hold-label">Hold to reset all progress</span><span class="hold-fill" aria-hidden="true"><span class="hold-label">Hold to reset all progress</span></span></button>
       <p class="small" id="reset-status" role="status"></p>
       <p class="small muted" id="reset-hint">Clears your dot point ratings, flashcards, study days, the examples you've opened and your essay draft. Your theme stays. This can't be undone.</p>
+    </section>
+    <section class="set-admin" aria-label="Admin">
+      <button type="button" class="icon-btn admin-lock" id="admin-lock" aria-expanded="false" aria-controls="admin-body" aria-label="Admin" title="Admin"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path class="shackle-shut" d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="shackle-open" d="M8 11V8a4 4 0 0 1 7.6-1.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <div id="admin-body" class="admin-body" hidden>
+        <form id="admin-form" class="admin-form" autocomplete="off">
+          <label for="admin-pin" class="small">Admin password</label>
+          <div class="admin-row">
+            <input id="admin-pin" class="field" type="password" inputmode="numeric" autocomplete="off" maxlength="12" aria-describedby="admin-msg">
+            <button type="submit" class="btn small primary">Unlock</button>
+          </div>
+          <p class="small" id="admin-msg" role="status"></p>
+        </form>
+        <div id="admin-panel" class="admin-panel" hidden>
+          <h3 id="admin-h">Admin</h3>
+          <p class="small muted">Turn on the secret theme without finishing the syllabus.</p>
+          <div class="seg" id="admin-gold-seg" role="group" aria-labelledby="admin-h">
+            <button type="button" data-choice="on" aria-pressed="false">Secret theme on</button>
+            <button type="button" data-choice="off" aria-pressed="true">Off</button>
+          </div>
+          <button type="button" class="btn ghost small" id="admin-relock">Lock admin</button>
+        </div>
+      </div>
     </section>
   </div>
 </dialog>
