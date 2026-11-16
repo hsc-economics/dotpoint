@@ -88,6 +88,20 @@ globalThis.DP_NEWS_ARCHIVE = [
   "also": []
  },
  {
+  "id": "n-955db39045",
+  "title": "Fewer hours and higher wages – or more burnout and surveillance: employers told to prepare for AI",
+  "date": "2026-11-12",
+  "published": "2026-11-12T06:55:44Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/technology/2026/nov/12/fewer-hours-and-higher-wages-or-more-burnout-and-surveillance-employers-told-to-prepare-for-ai",
+  "desc": "Workplace relations minister Amanda Rishworth launches best practice guide on AI adoption after Qantas and Canva job cuts",
+  "keyFigure": "",
+  "dotpoints": [
+   "hh-min-wage"
+  ],
+  "also": []
+ },
+ {
   "id": "n-895c17c652",
   "title": "ANZ boss warns global markets in 'dangerous situation' as interest rates rise",
   "date": "2026-11-12",
