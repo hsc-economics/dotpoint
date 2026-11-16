@@ -848,28 +848,34 @@ textarea.field { min-height: 100px; resize: vertical; }
 .fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 80; overflow: hidden; }
 /* the gold unlock animation (js/app.js playUnlock): a dimmed stage, the logo's dot, a ring of 39 dots and a count */
 .unlock-wrap { position: fixed; inset: 0; z-index: 90; cursor: pointer; }
-.unlock { position: absolute; inset: 0; overflow: hidden; }
-.unlock-veil { position: absolute; inset: 0; background: var(--paper); opacity: 0; transition: background-color 0.8s ease; }
+.unlock { position: absolute; inset: 0; overflow: hidden;
+  --ug-paper: #f4eee0; --ug-dot: #cfae5a; --ug-ring: #b8954a; --ug-text: #7d5f1a; --ug-silver: #b7bcc2; --ug-edge: #fffdf8; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .unlock { --ug-paper: #13120f; --ug-dot: #d2b26a; --ug-ring: #a88a48; --ug-text: #d2b26a; --ug-silver: #6f757d; --ug-edge: #1b1a16; } }
+:root[data-theme="dark"] .unlock { --ug-paper: #13120f; --ug-dot: #d2b26a; --ug-ring: #a88a48; --ug-text: #d2b26a; --ug-silver: #6f757d; --ug-edge: #1b1a16; }
+/* only opacity and transform move during the show: colours swap in one go, under a fade or a pop */
+.unlock-veil { position: absolute; inset: 0; background: var(--paper); opacity: 0; }
+.unlock-veil-gold { position: absolute; inset: 0; background: var(--ug-paper); opacity: 0; }
 .unlock-hero { position: absolute; }
 .unlock-hero svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.u-dot { fill: var(--hl); transition: fill 0.8s ease; }
-.u-ring { fill: none; stroke: var(--ink); stroke-width: 6.5; stroke-linecap: round; stroke-dasharray: 100 100; stroke-dashoffset: 100; transition: stroke 0.8s ease; }
+.u-dot { fill: var(--hl); }
+.unlock.gilded .u-dot { fill: var(--ug-dot); }
+.u-ring { fill: none; stroke: var(--ink); stroke-width: 6.5; stroke-linecap: round; stroke-dasharray: 100 100; stroke-dashoffset: 100; }
 .u-eyes { opacity: 0; transform-box: fill-box; transform-origin: center; }
 .u-eyes ellipse { fill: #18211d; }
 .u-face { fill: none; stroke: #18211d; stroke-width: 2.2; stroke-linecap: round; opacity: 0; transition: opacity 0.3s ease; }
-.unlock.gilded .u-ring { stroke: var(--gold, #b8954a); }
+.unlock.gilded .u-ring { stroke: var(--ug-ring); }
 .unlock.gilded .u-eyes { opacity: 0 !important; }
 .unlock.gilded .u-face { opacity: 1; }
 .unlock-orbit { position: absolute; width: 0; height: 0; }
-.unlock-dot { position: absolute; border-radius: 50%; background: var(--hl); box-shadow: 0 0 0 1.5px var(--ink); transition: background-color 0.8s ease, box-shadow 0.8s ease; }
-.unlock.gilded .unlock-dot { box-shadow: 0 0 0 1.5px var(--paper), 0 0 0 2.5px var(--silver, #b7bcc2); }
-.unlock.gilded .unlock-dot.silver { background: var(--silver, #b7bcc2); }
+.unlock-dot { position: absolute; border-radius: 50%; background: var(--hl); box-shadow: 0 0 0 1.5px var(--ink); }
+.unlock.gilded .unlock-dot { background: var(--ug-dot); box-shadow: 0 0 0 1.5px var(--ug-edge), 0 0 0 2.5px var(--ug-silver); }
+.unlock.gilded .unlock-dot.silver { background: var(--ug-silver); }
 .unlock-count {
   position: absolute; left: 0; right: 0; text-align: center; opacity: 0;
   font-family: var(--font-display); font-weight: 800; font-size: clamp(1.75rem, 1.2rem + 2.4vw, 3rem); letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums; color: var(--ink); transition: color 0.8s ease;
+  font-variant-numeric: tabular-nums; color: var(--ink);
 }
-.unlock.gilded .unlock-count { color: var(--gold-text, var(--ink)); }
+.unlock.gilded .unlock-count { color: var(--ug-text); }
 .unlock-skip { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
 .unlock-skip:not(:focus-visible) { width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
 .unlock-skip:focus-visible { min-height: 44px; padding: 8px 16px; border-radius: var(--r-sm); border: 1px solid var(--ink); background: var(--surface); color: var(--ink); font-weight: 600; }
@@ -993,24 +999,24 @@ textarea.field { min-height: 100px; resize: vertical; }
 /* the finer details: silver corner brackets with a tiny gold dot in a silver ring (the logo in miniature) on every
    card, page titles that end in a gold dot point, a silver line inside the header's gold one, a gold dot set into
    the footer rule, and a soft sheen at the top of the page */
-:root[data-gold="on"] { --sheen: rgba(255, 253, 246, 0.95); --orn: #a3a9b0; }
-@media (prefers-color-scheme: dark) { :root[data-gold="on"]:not([data-theme="light"]) { --sheen: rgba(210, 178, 106, 0.09); --orn: #80878f; } }
-:root[data-gold="on"][data-theme="dark"] { --sheen: rgba(210, 178, 106, 0.09); --orn: #80878f; }
+:root[data-gold="on"] { --sheen: rgba(255, 253, 246, 0.95); --orn: #a3a9b0;
+  --orn-plain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M0.5 20V7.5A7 7 0 0 1 7.5 0.5H20M20 0.5H32.5A7 7 0 0 1 39.5 7.5V20M39.5 20V32.5A7 7 0 0 1 32.5 39.5H20M20 39.5H7.5A7 7 0 0 1 0.5 32.5V20' fill='none' stroke='%23a3a9b0'/%3E%3C/svg%3E");
+  --orn-ring: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M0.5 20V7.5A7 7 0 0 1 7.5 0.5H20M20 0.5H32.5A7 7 0 0 1 39.5 7.5V20M39.5 20V32.5A7 7 0 0 1 32.5 39.5H20M20 39.5H7.5A7 7 0 0 1 0.5 32.5V20' fill='none' stroke='%23a3a9b0'/%3E%3Ccircle cx='7' cy='7' r='4.2' fill='none' stroke='%23a3a9b0'/%3E%3Ccircle cx='7' cy='7' r='2.2' fill='%23cfae5a'/%3E%3Ccircle cx='33' cy='7' r='4.2' fill='none' stroke='%23a3a9b0'/%3E%3Ccircle cx='33' cy='7' r='2.2' fill='%23cfae5a'/%3E%3Ccircle cx='7' cy='33' r='4.2' fill='none' stroke='%23a3a9b0'/%3E%3Ccircle cx='7' cy='33' r='2.2' fill='%23cfae5a'/%3E%3Ccircle cx='33' cy='33' r='4.2' fill='none' stroke='%23a3a9b0'/%3E%3Ccircle cx='33' cy='33' r='2.2' fill='%23cfae5a'/%3E%3C/svg%3E"); }
+@media (prefers-color-scheme: dark) { :root[data-gold="on"]:not([data-theme="light"]) { --sheen: rgba(210, 178, 106, 0.09); --orn: #80878f;
+  --orn-plain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M0.5 20V7.5A7 7 0 0 1 7.5 0.5H20M20 0.5H32.5A7 7 0 0 1 39.5 7.5V20M39.5 20V32.5A7 7 0 0 1 32.5 39.5H20M20 39.5H7.5A7 7 0 0 1 0.5 32.5V20' fill='none' stroke='%2380878f'/%3E%3C/svg%3E");
+  --orn-ring: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M0.5 20V7.5A7 7 0 0 1 7.5 0.5H20M20 0.5H32.5A7 7 0 0 1 39.5 7.5V20M39.5 20V32.5A7 7 0 0 1 32.5 39.5H20M20 39.5H7.5A7 7 0 0 1 0.5 32.5V20' fill='none' stroke='%2380878f'/%3E%3Ccircle cx='7' cy='7' r='4.2' fill='none' stroke='%2380878f'/%3E%3Ccircle cx='7' cy='7' r='2.2' fill='%23d2b26a'/%3E%3Ccircle cx='33' cy='7' r='4.2' fill='none' stroke='%2380878f'/%3E%3Ccircle cx='33' cy='7' r='2.2' fill='%23d2b26a'/%3E%3Ccircle cx='7' cy='33' r='4.2' fill='none' stroke='%2380878f'/%3E%3Ccircle cx='7' cy='33' r='2.2' fill='%23d2b26a'/%3E%3Ccircle cx='33' cy='33' r='4.2' fill='none' stroke='%2380878f'/%3E%3Ccircle cx='33' cy='33' r='2.2' fill='%23d2b26a'/%3E%3C/svg%3E"); } }
+:root[data-gold="on"][data-theme="dark"] { --sheen: rgba(210, 178, 106, 0.09); --orn: #80878f;
+  --orn-plain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M0.5 20V7.5A7 7 0 0 1 7.5 0.5H20M20 0.5H32.5A7 7 0 0 1 39.5 7.5V20M39.5 20V32.5A7 7 0 0 1 32.5 39.5H20M20 39.5H7.5A7 7 0 0 1 0.5 32.5V20' fill='none' stroke='%2380878f'/%3E%3C/svg%3E");
+  --orn-ring: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M0.5 20V7.5A7 7 0 0 1 7.5 0.5H20M20 0.5H32.5A7 7 0 0 1 39.5 7.5V20M39.5 20V32.5A7 7 0 0 1 32.5 39.5H20M20 39.5H7.5A7 7 0 0 1 0.5 32.5V20' fill='none' stroke='%2380878f'/%3E%3Ccircle cx='7' cy='7' r='4.2' fill='none' stroke='%2380878f'/%3E%3Ccircle cx='7' cy='7' r='2.2' fill='%23d2b26a'/%3E%3Ccircle cx='33' cy='7' r='4.2' fill='none' stroke='%2380878f'/%3E%3Ccircle cx='33' cy='7' r='2.2' fill='%23d2b26a'/%3E%3Ccircle cx='7' cy='33' r='4.2' fill='none' stroke='%2380878f'/%3E%3Ccircle cx='7' cy='33' r='2.2' fill='%23d2b26a'/%3E%3Ccircle cx='33' cy='33' r='4.2' fill='none' stroke='%2380878f'/%3E%3Ccircle cx='33' cy='33' r='2.2' fill='%23d2b26a'/%3E%3C/svg%3E"); }
 [data-gold="on"] body { background: radial-gradient(ellipse 110% 55% at 50% -8%, var(--sheen), transparent 70%) no-repeat fixed, var(--paper); }
 [data-gold="on"] :is(.panel, .fa, .tile, .fa-tiles button, .res-table-wrap, .ev, .daily-list) { position: relative; }
+/* the corner brackets (and, on bigger cards, a gold dot in a silver ring) are one small picture drawn into the
+   corners with border-image: much cheaper to draw than masks, so the gold switch stays smooth */
 [data-gold="on"] :is(.panel, .fa, .tile, .fa-tiles button, .res-table-wrap, .ev, .daily-list)::before {
-  content: ""; position: absolute; inset: 5px; pointer-events: none; border: 1px solid var(--orn); border-radius: calc(var(--r) - 5px);
-  -webkit-mask: linear-gradient(#000 0 0) 0 0 / 24px 24px no-repeat, linear-gradient(#000 0 0) 100% 0 / 24px 24px no-repeat,
-    linear-gradient(#000 0 0) 0 100% / 24px 24px no-repeat, linear-gradient(#000 0 0) 100% 100% / 24px 24px no-repeat;
-  mask: linear-gradient(#000 0 0) 0 0 / 24px 24px no-repeat, linear-gradient(#000 0 0) 100% 0 / 24px 24px no-repeat,
-    linear-gradient(#000 0 0) 0 100% / 24px 24px no-repeat, linear-gradient(#000 0 0) 100% 100% / 24px 24px no-repeat;
+  content: ""; position: absolute; inset: 5px; pointer-events: none;
+  border: 20px solid transparent; border-image: var(--orn-plain) 20 / 20px stretch;
 }
-[data-gold="on"] :is(.panel, .fa, .fa-tiles button, .res-table-wrap)::after {
-  --ring: radial-gradient(circle, var(--hl) 0 2.2px, transparent 2.7px 3.5px, var(--orn) 3.7px 4.7px, transparent 5.2px);
-  content: ""; position: absolute; inset: 6px; pointer-events: none;
-  background: var(--ring) 0 0 / 12px 12px no-repeat, var(--ring) 100% 0 / 12px 12px no-repeat,
-    var(--ring) 0 100% / 12px 12px no-repeat, var(--ring) 100% 100% / 12px 12px no-repeat;
-}
+[data-gold="on"] :is(.panel, .fa, .fa-tiles button, .res-table-wrap)::before { border-image-source: var(--orn-ring); }
 [data-gold="on"] main h1::after {
   content: ""; display: inline-block; width: 0.17em; height: 0.17em; margin-left: 0.1em; vertical-align: 0.02em; border-radius: 50%;
   background: var(--hl); box-shadow: 0 0 0 0.04em var(--paper), 0 0 0 0.075em var(--silver);

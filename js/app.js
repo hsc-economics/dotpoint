@@ -510,7 +510,7 @@
     goldEarned = L.syllabusComplete(SY, progress, deck, TODAY);
     syncGoldControls();
     const on = goldOn();
-    if (celebrate && goldEarned && !was && on && !goldForced()) setTimeout(goldUnlock, 350);
+    if (celebrate && goldEarned && !was && on && !goldForced()) setTimeout(goldUnlock, 150);
     else applyGold(on);
   }
 
@@ -560,6 +560,8 @@
 
     const stage = h("div", { class: "unlock", "aria-hidden": "true" });
     const veil = h("div", { class: "unlock-veil" });
+    const veilGold = h("div", { class: "unlock-veil-gold" });
+    veil.append(veilGold);
     const hero = h("div", { class: "unlock-hero", style: `left:${cx - size / 2}px;top:${cy - size / 2}px;width:${size}px;height:${size}px` });
     hero.append(s("svg", { viewBox: "0 0 64 64", focusable: "false" },
       s("circle", { class: "u-dot", cx: 37, cy: 37, r: 21 }),
@@ -629,8 +631,12 @@
 
     // 4.6 to 7.1 s: everything turns gold, the face goes happy, the ring of dots spins once
     at(4600, () => {
+      // Colours swap in one go under a pop, and a gold copy of the background fades in over the old one:
+      // only opacity and transform move, so the browser never has to repaint the colours frame by frame.
       stage.classList.add("gilded");
-      applyGold(true);
+      play(veilGold, [{ opacity: 0 }, { opacity: 1 }], { duration: 700, easing: "ease-out", fill: "forwards" });
+      dots.forEach(([dot], i) => play(dot, [{ transform: "scale(1)" }, { transform: "scale(1.5)" }, { transform: "scale(1)" }],
+        { duration: 360, delay: i * 9, easing: "cubic-bezier(.3,1.6,.5,1)" }));
       play(count, [{ transform: "scale(1)" }, { transform: "scale(1.25)" }, { transform: "scale(1)" }], { duration: 520, easing: "cubic-bezier(.3,1.6,.5,1)" });
       play(hero, [{ transform: "scale(1)" }, { transform: "scale(1.12)" }, { transform: "scale(1)" }], { duration: 520, easing: "cubic-bezier(.3,1.6,.5,1)" });
     });
@@ -651,6 +657,7 @@
     });
 
     // 8.3 to 9.8 s: the dot flies up into the 39/39 mark (or the logo), and the page comes back
+    at(5400, () => applyGold(true)); // the page behind turns gold once the gold background covers it
     let target = null;
     at(8300, () => {
       const mark = $("done-mark");
@@ -773,6 +780,7 @@
       writeKey(FORCE_KEY, null);
       writeKey(BUDDY_KEY, null);
       setBuddy(false);
+      adminOpenSections.clear(); // every section starts closed the next time admin is unlocked
       $("admin-tools").replaceChildren();
       closeAdmin();
       $("admin-lock").focus();
@@ -787,7 +795,7 @@
 
   const BACKUP_KEY = "dotpoint.admin.backup";
   const BUDDY_KEY = "dotpoint.flag.buddy";
-  const adminOpenSections = new Set(["progress"]);
+  const adminOpenSections = new Set(); // the tool sections open right now; all close when admin is locked
 
   // A status line inside a tool that says what just happened.
   function toolNote(id) { return h("p", { class: "small tool-note", id, role: "status" }); }
