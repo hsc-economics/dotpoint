@@ -82,9 +82,15 @@ After that, `.github/workflows/refresh-and-publish.yml` downloads new RBA and AB
 weekday evening, runs the tests, saves any changes and republishes. Turn off the Claude scheduled
 task so the two don't overlap.
 
-Suggestions: people use the "Suggest an example or statistic" form (links appear once step 4 is done).
-Read the issue, fix anything you need to, then add the **approved** label. `add-submission.yml` turns
-it into a card, tests it, publishes it and closes the issue, or comments with what to fix.
+Suggestions and problem reports: people use `suggest.html` and `report.html` (and the "Report a problem"
+box on each example and statistic). These email `contactInbox` in `data/config.js` through FormSubmit
+(formsubmit.co), so nobody needs a GitHub account. The first message sent asks that inbox to activate the
+form: click the link in FormSubmit's email once. FormSubmit then offers a random alias for the address; put
+it in `contactInbox` to keep the address out of the public code. A message that can't be sent is shown
+for copying instead, with an "Email it instead" link.
+
+The older GitHub route still works for anyone who opens an issue directly: add the **approved** label
+and `add-submission.yml` turns it into a card, tests it, publishes it and closes the issue.
 
 Everything works off Claude. Only account sync needs it; elsewhere progress is saved in the browser.
 

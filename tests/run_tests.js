@@ -478,7 +478,7 @@ test("page: every element id used by app.js exists in index.html or is created b
   for (const id of new Set(used)) ok(html.includes(`id="${id}"`) || created.has(id), `missing #${id}`);
 });
 test("page: scripts load in dependency order", () => {
-  const order = ["data/syllabus.js", "data/evidence.js", "data/stats.js", "data/questions.js", "data/news.js", "data/news-archive.js", "data/resources.js", "data/config.js", "js/logic.js", "js/app.js"].map((f) => html.indexOf(`src="${f}"`));
+  const order = ["data/syllabus.js", "data/evidence.js", "data/stats.js", "data/questions.js", "data/news.js", "data/news-archive.js", "data/resources.js", "data/config.js", "js/contact.js", "js/logic.js", "js/app.js"].map((f) => html.indexOf(`src="${f}"`));
   ok(order.every((x, i) => x > 0 && (i === 0 || x > order[i - 1])), JSON.stringify(order));
 });
 test("page: no document skeleton tags (the publisher adds them)", () => {
@@ -659,6 +659,22 @@ test("admin: a padlock in settings opens a password form, and the panel stays hi
   ok(/id="admin-body"[^>]*hidden/.test(html) && /id="admin-panel"[^>]*hidden/.test(html), "hidden at first");
   ok(/const ADMIN_HASH = "[0-9a-f]{64}"/.test(app), "the app keeps only a SHA-256 hash of the password");
   ok(app.includes("goldForced()"), "the admin switch can turn the secret theme on");
+});
+test("contact: suggestions and reports are emailed, not sent through GitHub", () => {
+  load("data/config.js");
+  load("js/contact.js");
+  ok(DP_CONTACT.ready, "an inbox is set in data/config.js");
+  ok(/^mailto:[^?]+@[^?]+\?subject=Hi%20there&body=/.test(DP_CONTACT.mailto("Hi there", "text")), "email fallback link");
+  eq(DP_CONTACT.asText("T", { A: "1", B: "" }), "T\nA: 1\nB: (none)");
+  ok(!/github\.com\/[^"]*issues\/new/.test(app) && !html.includes("report-github"), "no GitHub issue links left");
+  const build = read("tools/build_preview.py");
+  ok(build.includes('"suggest.html"') && build.includes('"report.html"'), "the build writes both form pages");
+  ok(build.includes('name="_honey"'), "the forms carry a spam trap");
+});
+test("footer: one-page lists, suggestions and reports open in a new tab", () => {
+  for (const f of ["dot-points.html", "examples.html", "report.html", "suggest.html"]) {
+    ok(new RegExp(`href="[^"]*${f.replace(".", "\\.")}" target="_blank" rel="noopener"`).test(html), f);
+  }
 });
 test("resources: the Papers tab is in the menu", () => ok(html.includes('data-nav="resources"') && html.includes('id="view-resources"')));
 

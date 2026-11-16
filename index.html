@@ -877,13 +877,6 @@ textarea.field { min-height: 100px; resize: vertical; }
   --chart-area: rgba(236, 232, 223, 0.06); --band: rgba(210, 178, 106, 0.16);
   --gold: #a88a48; --gold-text: #d2b26a; --silver: #6f757d; --silver-faint: rgba(160, 167, 176, 0.3);
 }
-/* a gold hairline round the window with a silver one just inside it (wide screens only) */
-@media (min-width: 761px) {
-  [data-gold="on"] body::after {
-    content: ""; position: fixed; z-index: 29; pointer-events: none; inset: 12px; border-radius: 16px;
-    border: 1px solid var(--gold); outline: 1px solid var(--silver-faint); outline-offset: -5px;
-  }
-}
 [data-gold="on"] .topbar { border-bottom-color: var(--gold); }
 [data-gold="on"] .tabs { border-top-color: var(--gold); }
 [data-gold="on"] footer { border-top-color: var(--silver); }
@@ -895,15 +888,17 @@ textarea.field { min-height: 100px; resize: vertical; }
 [data-gold="on"] .study-band { border-block: 1px solid var(--silver-faint); }
 /* the flex: a small 39/39 by the logo, and one line on the home page */
 .done-mark {
-  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; color: var(--gold-text);
-  padding: 2px 8px; border: 1px solid var(--gold); border-radius: 999px; box-shadow: inset 0 0 0 2px var(--surface), inset 0 0 0 3px var(--silver-faint);
-  background: var(--surface); line-height: 1.4; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; color: var(--gold-text);
+}
+.done-mark:not([hidden])::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--hl); box-shadow: 0 0 0 1.5px var(--paper), 0 0 0 2.5px var(--silver);
 }
 .gold-note { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: var(--fs-sm); margin-top: -16px; }
 .gold-seal { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--hl); box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--silver); }
 </style>
 
-<script>try { var t = localStorage.getItem("dotpoint.theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
+<script>try { var t = localStorage.getItem("dotpoint.theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; if (localStorage.getItem("dotpoint.gold.shown") === "1") document.documentElement.dataset.gold = "on"; } catch (e) {}</script>
 
 <a class="skip" href="#main">Skip to content</a>
 
@@ -947,10 +942,10 @@ textarea.field { min-height: 100px; resize: vertical; }
     <p>Dotpoint is an independent study tool and is not affiliated with NESA. Dot point summaries are our own words, so always check the <a href="https://curriculum.nsw.edu.au/learning-areas/hsie/economics-11-12-2025/content" target="_blank" rel="noopener">official Economics 11–12 Syllabus (2025)</a>. Legal Studies and Business Studies come after Economics.</p>
     <p id="data-note"></p>
     <p class="btn-row"><span class="sync" id="sync-status" data-state="local">Progress is saved in this browser</span>
-      <button type="button" class="link-btn" id="report-general">Report a problem with the site</button>
-      <a class="link-btn" id="suggest-footer" target="_blank" rel="noopener" hidden>Suggest an example or statistic ↗</a></p>
-    <p class="btn-row"><a class="link-btn" href="https://hsc-economics.github.io/dotpoint/dot-points.html">All dot points on one page</a>
-      <a class="link-btn" href="https://hsc-economics.github.io/dotpoint/examples.html">All examples on one page</a></p>
+      <a class="link-btn" href="report.html" target="_blank" rel="noopener">Report a problem with the site<span class="sr-only"> (opens in a new tab)</span> ↗</a>
+      <a class="link-btn" href="suggest.html" target="_blank" rel="noopener">Suggest an example or statistic<span class="sr-only"> (opens in a new tab)</span> ↗</a></p>
+    <p class="btn-row"><a class="link-btn" href="https://hsc-economics.github.io/dotpoint/dot-points.html" target="_blank" rel="noopener">All dot points on one page<span class="sr-only"> (opens in a new tab)</span> ↗</a>
+      <a class="link-btn" href="https://hsc-economics.github.io/dotpoint/examples.html" target="_blank" rel="noopener">All examples on one page<span class="sr-only"> (opens in a new tab)</span> ↗</a></p>
   </div>
 </footer>
 
@@ -969,9 +964,9 @@ textarea.field { min-height: 100px; resize: vertical; }
     <textarea class="field" id="report-note" maxlength="600" placeholder="For example: the RBA changed the cash rate again on…"></textarea>
     <p class="small muted">Don't include your name or other personal details.</p>
     <div id="report-fallback" hidden>
-      <p class="small" id="report-fallback-text">This view can't send reports. Copy the text below and pass it to whoever shared Dotpoint with you.</p>
-      <textarea class="field mono small" id="report-copy" readonly></textarea>
-      <p><a class="btn small" id="report-github" target="_blank" rel="noopener" hidden>Report it on GitHub ↗</a></p>
+      <p class="small" id="report-fallback-text">It didn't send. You can email it instead, or copy the text below.</p>
+      <textarea class="field mono small" id="report-copy" readonly aria-label="Your report, to copy"></textarea>
+      <p><a class="btn small" id="report-email" hidden>Email it instead</a></p>
     </div>
     <div class="btn-row">
       <button type="submit" class="btn primary" id="report-send" value="send">Send report</button>
@@ -1045,5 +1040,6 @@ textarea.field { min-height: 100px; resize: vertical; }
 <script src="data/news-archive.js"></script>
 <script src="data/resources.js"></script>
 <script src="data/config.js"></script>
+<script src="js/contact.js"></script>
 <script src="js/logic.js"></script>
 <script src="js/app.js"></script>

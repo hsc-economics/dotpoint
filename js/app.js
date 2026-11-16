@@ -7,10 +7,8 @@
   const EV = globalThis.DP_EVIDENCE;
   const ST = globalThis.DP_STATS;
   const QS = globalThis.DP_QUESTIONS || [];
-  const CONFIG = globalThis.DP_CONFIG || {};
-  const REPO = /^[\w.-]+\/[\w.-]+$/.test(CONFIG.repo || "") ? CONFIG.repo : "";
-  // The GitHub form for suggesting examples and statistics, or "" when no repository is set.
-  const SUGGEST_URL = REPO ? `https://github.com/${REPO}/issues/new?template=suggest-evidence.yml` : "";
+  // Suggestions and problem reports are emailed through js/contact.js; suggest.html and report.html hold the forms.
+  const CONTACT = globalThis.DP_CONTACT || { ready: false };
 
   const now = new Date();
   const TODAY_ISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -426,6 +424,7 @@
   function applyGold(on) {
     if (on) document.documentElement.dataset.gold = "on";
     else delete document.documentElement.dataset.gold;
+    writeKey("dotpoint.gold.shown", on ? "1" : null); // lets the next page load start gold, without a flash
     const n = SY.focusAreas.reduce((sum, fa) => sum + fa.dotpoints.length, 0);
     const markEl = $("done-mark");
     markEl.hidden = !on;
@@ -718,14 +717,16 @@
 
   // ---------- problem reports ----------
 
-  let reportTarget = "";
+  let reportTarget = "", reportLabel = "";
 
   function openReport(target, label) {
     reportTarget = target;
+    reportLabel = label || "";
     $("report-target").textContent = label ? `About: ${label}` : "About the site in general";
     $("report-note").value = "";
     $("reason-wrong").checked = true;
     $("report-fallback").hidden = true;
+    $("report-email").hidden = true;
     $("report-send").hidden = false;
     $("report-send").disabled = false;
     $("report-send").textContent = "Send report";
@@ -743,15 +744,13 @@
     const reason = (document.querySelector('input[name="reason"]:checked') || {}).value;
     const r = L.cleanReport({ reason, note: $("report-note").value, target: reportTarget });
     $("report-send").disabled = true;
+    $("report-send").textContent = "Sending…";
+    const item = reportLabel ? `${reportLabel.slice(0, 160)} (${r.target})` : r.target || "The site in general";
+    const subject = `Dotpoint problem: ${r.reason}${reportLabel ? `: ${reportLabel}` : ""}`.slice(0, 120);
+    const fields = { Problem: r.reason, Item: item, Details: r.note || "(none)", Sent: r.at.slice(0, 10) };
     let sent = false;
     try {
-      if (Sync.db && Sync.uid) {
-        const ref = Sync.db.doc(`reports/${Sync.uid}`);
-        const snap = await ref.get();
-        const prev = snap.exists && Array.isArray(snap.data().items) ? snap.data().items.slice(-49) : [];
-        await ref.set({ items: prev.concat([r]), updatedAt: Date.now() });
-        sent = true;
-      }
+      sent = CONTACT.ready && await CONTACT.send(subject, fields);
     } catch (e) {
       sent = false;
     }
@@ -761,14 +760,11 @@
       $("report-send").disabled = true;
       setTimeout(closeReport, 1100);
     } else {
-      $("report-copy").value = `Dotpoint report\nItem: ${r.target || "site"}\nProblem: ${r.reason}\nDetails: ${r.note || "(none)"}\nDate: ${r.at.slice(0, 10)}`;
+      $("report-copy").value = CONTACT.asText ? CONTACT.asText("Dotpoint problem report", fields) : `${subject}\n${r.note}`;
+      const mail = CONTACT.mailto ? CONTACT.mailto(subject, $("report-copy").value) : "";
+      $("report-email").href = mail || "#";
+      $("report-email").hidden = !mail;
       $("report-fallback").hidden = false;
-      if (REPO) {
-        const body = `${$("report-copy").value}\n`;
-        $("report-github").href = `https://github.com/${REPO}/issues/new?title=${encodeURIComponent(`Problem: ${r.reason}${r.target ? ` (${r.target})` : ""}`)}&body=${encodeURIComponent(body)}`;
-        $("report-github").hidden = false;
-        $("report-fallback-text").textContent = "Send it as a GitHub issue, or copy the text below.";
-      }
       $("report-send").hidden = true;
       $("report-cancel").textContent = "Close";
     }
@@ -1336,11 +1332,11 @@
       sparkline(ind));
   }
 
-  // A link to the suggestion form, shown only once a GitHub repository is set in data/config.js.
+  // A link to the suggestion form, which opens in a new tab.
   function suggestLink(lead) {
-    if (!SUGGEST_URL) return null;
     return h("p", { class: "suggest small muted" }, lead, " ",
-      h("a", { href: SUGGEST_URL, target: "_blank", rel: "noopener" }, "Suggest an example or statistic ↗"));
+      h("a", { href: "suggest.html", target: "_blank", rel: "noopener" }, "Suggest an example or statistic",
+        h("span", { class: "sr-only" }, " (opens in a new tab)"), " ↗"));
   }
 
   // Top economics and politics stories from trusted outlets, ranked by tools/update_news.py (how widely
@@ -2393,7 +2389,6 @@
     for (const el of document.querySelectorAll("[data-nav]")) {
       el.addEventListener("click", (e) => { e.preventDefault(); go(el.dataset.nav); });
     }
-    $("report-general").addEventListener("click", () => openReport("site", ""));
     let dotClicks = [];
     document.querySelector(".brand").addEventListener("click", () => {
       motion(document.querySelector(".brand-art"), [
@@ -2407,7 +2402,6 @@
         dotShower(48);
       }
     });
-    if (SUGGEST_URL) { $("suggest-footer").href = SUGGEST_URL; $("suggest-footer").hidden = false; }
     $("report-cancel").addEventListener("click", closeReport);
     applyTheme(themeChoice());
     $("settings-open").addEventListener("click", openSettings);
