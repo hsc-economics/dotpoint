@@ -2,6 +2,20 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-26ba3dc0cd",
+  "title": "Canada could work with Chinese automakers if US trade talks fail, says Carney",
+  "date": "2026-11-16",
+  "published": "2026-11-16T04:39:20Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/world/2026/nov/16/canada-carney-cars-evs-tariffs-xi-jinping-china-trump-trade-talks",
+  "desc": "Ahead of Apec summit, PM says ‘Canada is going to move forward either way’ when asked if Chinese investment was leverage in US negotiations",
+  "keyFigure": "",
+  "dotpoints": [
+   "int-trade"
+  ],
+  "also": []
+ },
+ {
   "id": "n-9fb2e3f99f",
   "title": "A slowing economy could mean higher youth unemployment, economist warns",
   "date": "2026-11-15",
