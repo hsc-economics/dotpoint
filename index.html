@@ -512,6 +512,53 @@ dialog.sheet::backdrop { background: rgba(18, 24, 21, 0.24); }
 #admin-msg:empty { display: none; }
 #admin-msg { color: var(--bad); }
 .admin-panel .btn { justify-self: start; }
+.admin-label { font-size: var(--fs-sm); font-weight: 600; margin: 4px 0 -4px; }
+/* admin tools: folding sections, each with a few buttons and a line saying what happened */
+.admin-tools { display: grid; margin-top: 4px; }
+.tool { border-top: 1px solid var(--rule); }
+.tool:last-child { border-bottom: 1px solid var(--rule); }
+.tool > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+  min-height: 46px; font-weight: 600; font-size: var(--fs-sm);
+}
+.tool > summary::-webkit-details-marker { display: none; }
+.tool > summary::after { content: ""; flex: none; width: 16px; height: 16px; background: var(--chev) center / 16px no-repeat; transition: transform 0.2s ease; }
+.tool[open] > summary::after { transform: rotate(180deg); }
+.tool[open] { padding-bottom: 16px; }
+.tool > * + *:not(summary) { margin-top: 10px; }
+.tool p { margin: 0; }
+.tool-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.tool-buttons:empty { display: none; }
+.btn.armed { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+.tool-note:empty { display: none; }
+.tool-note[data-kind="ok"] { color: var(--good); }
+.tool-note[data-kind="warn"] { color: var(--warn); }
+.health { margin: 0; display: grid; gap: 8px; }
+.health-row { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 8px; font-size: var(--fs-sm); }
+.health-row dt { color: var(--muted); }
+.health-row dd { margin: 0; }
+.health-state { display: inline-block; font-size: 0.75rem; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: var(--soft); }
+.health-state[data-kind="ok"] { background: var(--good-soft); color: var(--good); }
+.health-state[data-kind="warn"] { background: var(--warn-soft); color: var(--warn); }
+.old-list, .run-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: var(--fs-sm); }
+.old-list .link-btn { text-align: left; font-size: inherit; }
+/* the study buddy preview: Dot, in the corner */
+.buddy-dot {
+  position: fixed; z-index: 26; padding: 0; border: 0; background: none; cursor: pointer; width: 60px; height: 60px;
+  right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+@media (max-width: 760px) { .buddy-dot { width: 52px; height: 52px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); } }
+.buddy-dot svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.buddy-dot:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; border-radius: 50%; }
+.bd-dot { fill: var(--hl); }
+.bd-eyes ellipse { fill: #18211d; }
+.bd-eyes { transform-box: fill-box; transform-origin: center; }
+.bd-body { transform-box: fill-box; transform-origin: 50% 100%; }
+.bd-line { fill: none; stroke: #18211d; stroke-width: 3; stroke-linecap: round; opacity: 0; }
+.bd-ring { fill: none; stroke: var(--ink); stroke-width: 6.5; stroke-linecap: round; transition: stroke 0.3s ease; }
+.buddy-dot[data-mood="happy"] .bd-mouth, .buddy-dot[data-mood="proud"] .bd-mouth, .buddy-dot[data-mood="proud"] .bd-shut { opacity: 1; }
+.buddy-dot[data-mood="proud"] .bd-eyes { opacity: 0; }
+.buddy-dot[data-mood="proud"] .bd-ring { stroke: #c9a54a; }
 
 /* hold to reset: a red bar sweeps across while it's held down, turning the words over as it passes */
 .hold-btn {
@@ -1072,10 +1119,12 @@ textarea.field { min-height: 100px; resize: vertical; }
         <div id="admin-panel" class="admin-panel" hidden>
           <h3 id="admin-h">Admin</h3>
           <p class="small muted">Turn on the secret theme without finishing the syllabus.</p>
-          <div class="seg" id="admin-gold-seg" role="group" aria-labelledby="admin-h">
-            <button type="button" data-choice="on" aria-pressed="false">Secret theme on</button>
+          <p class="admin-label" id="admin-gold-h">Secret theme</p>
+          <div class="seg" id="admin-gold-seg" role="group" aria-labelledby="admin-gold-h">
+            <button type="button" data-choice="on" aria-pressed="false">On</button>
             <button type="button" data-choice="off" aria-pressed="true">Off</button>
           </div>
+          <div id="admin-tools" class="admin-tools"></div>
           <button type="button" class="btn ghost small" id="admin-relock">Lock admin</button>
         </div>
       </div>

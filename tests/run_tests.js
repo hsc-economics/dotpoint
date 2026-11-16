@@ -266,6 +266,25 @@ test("gold finish: only when every Year 11 and Year 12 dot point is confident", 
   ok(!L.syllabusComplete(SY, p, deck, D(TODAY)), "an unrated dot point");
   ok(!L.syllabusComplete({ focusAreas: [] }, p, deck, D(TODAY)), "an empty syllabus never counts");
 });
+test("admin backups: a backup loads back, and other files are refused in plain words", () => {
+  const p = L.emptyProgress();
+  p.dotStatus["hh-min-wage"] = "confident";
+  const file = JSON.stringify(L.progressBackup(p, Date.UTC(2026, 10, 16)));
+  const back = L.readBackup(file);
+  ok(!back.error, back.error);
+  eq(back.progress.dotStatus["hh-min-wage"], "confident");
+  eq(back.exportedAt.slice(0, 10), "2026-11-16");
+  ok(/can't be read/.test(L.readBackup("not json").error), "not JSON");
+  ok(/isn't a Dotpoint progress backup/.test(L.readBackup('{"app":"other"}').error), "someone else's file");
+  ok(/isn't a Dotpoint progress backup/.test(L.readBackup('{"app":"dotpoint","kind":"progress","progress":[]}').error), "progress must be an object");
+});
+test("admin: daysSince counts whole days and refuses dates it can't read", () => {
+  const now = Date.UTC(2026, 10, 16, 12);
+  eq(L.daysSince("2026-11-16T08:00:00Z", now), 0);
+  eq(L.daysSince("2026-11-13", now), 3);
+  eq(L.daysSince("nonsense", now), null);
+  eq(L.daysSince("", now), null);
+});
 test("suggestions: a new student is told to start a drill", () => {
   const s = L.suggestions({ deck, progress: L.emptyProgress(), today: D(TODAY), dpIndex, evidence: EV });
   eq(s[0].kind, "drill"); eq(s[0].title, "Start a 5-minute drill");
@@ -685,6 +704,11 @@ test("footer: one-page lists, suggestions and reports open in a new tab", () => 
   for (const f of ["dot-points.html", "examples.html", "report.html", "suggest.html"]) {
     ok(new RegExp(`href="[^"]*${f.replace(".", "\\.")}" target="_blank" rel="noopener"`).test(html), f);
   }
+});
+test("admin tools: every tool is built, and nothing uses CSS keyframes", () => {
+  for (const f of ["testRatings", "restoreRatings", "replay(", "setBuddy", "buddyReact", "refreshHealth", "checkRuns", "sendTestEmail", "downloadBackup", "pickBackup"]) ok(app.includes(f), f);
+  ok(html.includes('id="admin-tools"'), "a place for the tools in the admin panel");
+  ok(/writeKey\(BUDDY_KEY, null\);\s*setBuddy\(false\)/.test(app), "locking admin turns the buddy preview off");
 });
 test("resources: the Papers tab is in the menu", () => ok(html.includes('data-nav="resources"') && html.includes('id="view-resources"')));
 

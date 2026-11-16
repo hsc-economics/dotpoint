@@ -518,6 +518,7 @@
     if (typeof document.startViewTransition === "function" && !reducedMotion()) document.startViewTransition(swap);
     else swap();
     toast("All dot points confident. Gold finish on: turn it off any time in Settings");
+    buddyReact("proud");
   }
 
   // The Gold finish switch in Settings: shown to anyone who has earned the finish, or opened it from the
@@ -558,6 +559,8 @@
     $("admin-panel").hidden = !unlocked;
     const force = goldForced() ? "on" : "off";
     for (const b of $("admin-gold-seg").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.choice === force));
+    if (unlocked && open && !$("admin-tools").childElementCount) buildAdminTools();
+    if (unlocked && open) renderProgressTools();
   }
 
   function closeAdmin() {
@@ -612,12 +615,338 @@
       const wasForced = goldForced();
       writeKey(ADMIN_KEY, null);
       writeKey(FORCE_KEY, null);
+      writeKey(BUDDY_KEY, null);
+      setBuddy(false);
+      $("admin-tools").replaceChildren();
       closeAdmin();
       $("admin-lock").focus();
       if (wasForced) refreshGold();
     });
     $("settings-dialog").addEventListener("close", closeAdmin);
     renderAdmin();
+  }
+
+  // ---------- admin tools: test progress, replays, previews, site health, email check, backups ----------
+  // Everything here changes only this browser (and the owner's own account copy of their progress).
+
+  const BACKUP_KEY = "dotpoint.admin.backup";
+  const BUDDY_KEY = "dotpoint.flag.buddy";
+  const adminOpenSections = new Set(["progress"]);
+
+  // A status line inside a tool that says what just happened.
+  function toolNote(id) { return h("p", { class: "small tool-note", id, role: "status" }); }
+  function setNote(id, text, kind) { const el = $(id); if (el) { el.textContent = text; el.dataset.kind = kind || ""; } }
+
+  // A button that needs a second tap within a few seconds, for anything that overwrites saved progress.
+  function confirmButton(label, sure, onConfirm) {
+    let armed = 0;
+    const b = h("button", { type: "button", class: "btn small" }, label);
+    b.addEventListener("click", () => {
+      if (!armed) {
+        b.textContent = sure;
+        b.classList.add("armed");
+        armed = setTimeout(() => { armed = 0; b.textContent = label; b.classList.remove("armed"); }, 3500);
+        return;
+      }
+      clearTimeout(armed);
+      armed = 0;
+      b.textContent = label;
+      b.classList.remove("armed");
+      onConfirm();
+    });
+    return b;
+  }
+
+  function adminSection(key, title, ...body) {
+    const d = h("details", { class: "tool", open: adminOpenSections.has(key) || null }, h("summary", null, title), ...body);
+    d.addEventListener("toggle", () => {
+      if (d.open) adminOpenSections.add(key); else adminOpenSections.delete(key);
+      if (d.open && key === "health") refreshHealth();
+    });
+    return d;
+  }
+
+  // --- test progress ---
+
+  function keepOwnRatings() {
+    if (readKey(BACKUP_KEY) === null) writeKey(BACKUP_KEY, JSON.stringify(progress.dotStatus || {}));
+  }
+
+  function testRatings(mode) {
+    keepOwnRatings();
+    const ids = SY.focusAreas.flatMap((fa) => fa.dotpoints.map((dp) => dp.id));
+    const cycle = ["confident", "shaky", "none"];
+    commit((p) => {
+      p.dotStatus = {};
+      if (mode === "all") ids.forEach((id) => { p.dotStatus[id] = "confident"; });
+      if (mode === "mixed") ids.forEach((id, i) => { p.dotStatus[id] = cycle[i % 3]; });
+      if (mode === "none") ids.forEach((id) => { p.dotStatus[id] = "none"; });
+    });
+    render(ui.view);
+    const n = { all: "All 39 dot points are now Confident.", mixed: "Dot points are now a mix of Confident, Getting there and Unsure.", none: "Every dot point is now Unsure." }[mode];
+    setNote("tool-progress-note", n.replace("39", String(ids.length)));
+    renderProgressTools();
+  }
+
+  function restoreRatings() {
+    let saved = null;
+    try { saved = JSON.parse(readKey(BACKUP_KEY) || "null"); } catch (e) { saved = null; }
+    if (!saved || typeof saved !== "object") return;
+    commit((p) => { p.dotStatus = saved; });
+    writeKey(BACKUP_KEY, null);
+    render(ui.view);
+    setNote("tool-progress-note", "Your own ratings are back.");
+    renderProgressTools();
+  }
+
+  function renderProgressTools() {
+    const restore = $("tool-restore");
+    if (restore) restore.hidden = readKey(BACKUP_KEY) === null;
+  }
+
+  // --- replays ---
+
+  function replay(what) {
+    closeSettings();
+    setTimeout(() => {
+      if (what === "intro") {
+        try { sessionStorage.removeItem("dotpoint.intro"); } catch (e) { /* storage blocked */ }
+        window.scrollTo(0, 0);
+        introDot();
+      } else if (what === "focus") {
+        dotShower(40);
+        buddyReact("happy");
+      } else if (what === "gold") {
+        const was = goldOn();
+        applyGold(false);
+        setTimeout(() => {
+          const swap = () => applyGold(true);
+          if (typeof document.startViewTransition === "function" && !reducedMotion()) document.startViewTransition(swap); else swap();
+          toast("All dot points confident. Gold finish on: turn it off any time in Settings");
+          buddyReact("proud");
+          if (!was) setTimeout(() => {
+            const back = () => applyGold(false);
+            if (typeof document.startViewTransition === "function" && !reducedMotion()) document.startViewTransition(back); else back();
+          }, 5000);
+        }, 450);
+      }
+    }, 450);
+  }
+
+  // --- previews: the study buddy, Dot ---
+
+  const buddyOn = () => readKey(BUDDY_KEY) === "on";
+  let buddyEl = null, blinkTimer = 0;
+
+  function buddyMarkup() {
+    const ring = "M40 8 C24 2 6 13 6.5 30 C7 46 20 52.5 30 51.5 C44 50.5 51.5 40 50.5 27 C49.5 14 38 5.5 24 8.5";
+    return s("svg", { viewBox: "0 0 130 124", "aria-hidden": "true", focusable: "false" },
+      s("g", { class: "bd-body" },
+        s("circle", { class: "bd-dot", cx: 68, cy: 72, r: 30 }),
+        s("g", { class: "bd-eyes" },
+          s("ellipse", { cx: 59, cy: 67, rx: 3.6, ry: 5.2 }), s("ellipse", { cx: 78, cy: 67, rx: 3.6, ry: 5.2 })),
+        s("path", { class: "bd-line bd-shut", d: "M54 69 Q59 63 64 69 M73 69 Q78 63 83 69" }),
+        s("path", { class: "bd-line bd-mouth", d: "M60 78 Q67 84.5 74 78" })),
+      s("g", { transform: "translate(13 15) scale(1.5)" }, s("path", { class: "bd-ring", pathLength: 100, d: ring })));
+  }
+
+  function setBuddy(on) {
+    if (on && !buddyEl) {
+      buddyEl = h("button", { type: "button", class: "buddy-dot", "aria-label": "Dot, the study buddy (preview). Press to say hello." });
+      buddyEl.append(buddyMarkup());
+      buddyEl.addEventListener("click", () => buddyReact("happy"));
+      document.body.append(buddyEl);
+      motion(buddyEl, [{ transform: "translateY(24px) scale(0.6)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 380, easing: "cubic-bezier(.3,1.5,.5,1)" });
+      blinkTimer = setInterval(() => {
+        if (document.visibilityState !== "visible" || !buddyEl) return;
+        motion(buddyEl.querySelector(".bd-eyes"), [{ transform: "scaleY(1)" }, { transform: "scaleY(0.1)" }, { transform: "scaleY(1)" }], { duration: 220 });
+      }, 4600);
+    } else if (!on && buddyEl) {
+      clearInterval(blinkTimer);
+      buddyEl.remove();
+      buddyEl = null;
+    }
+  }
+
+  // Dot's reactions. Each plays once; with Reduce motion on, only the face changes.
+  function buddyReact(kind) {
+    if (!buddyEl) return;
+    const body = buddyEl.querySelector(".bd-body"), ring = buddyEl.querySelector(".bd-ring");
+    buddyEl.dataset.mood = kind;
+    clearTimeout(buddyEl._moodTimer);
+    buddyEl._moodTimer = setTimeout(() => { if (buddyEl) delete buddyEl.dataset.mood; }, kind === "proud" ? 3000 : 1300);
+    if (kind === "happy") {
+      motion(body, [
+        { transform: "translateY(0) scale(1, 1)" }, { transform: "translateY(0) scale(1.12, 0.86)", offset: 0.15 },
+        { transform: "translateY(-16px) scale(0.94, 1.08)", offset: 0.45 }, { transform: "translateY(0) scale(1.08, 0.92)", offset: 0.72 },
+        { transform: "translateY(0) scale(1, 1)" }], { duration: 760, easing: "cubic-bezier(.3,.7,.4,1)" });
+    } else if (kind === "oops") {
+      motion(body, [{ transform: "rotate(0)" }, { transform: "rotate(-9deg)" }, { transform: "rotate(7deg)" }, { transform: "rotate(-4deg)" }, { transform: "rotate(0)" }], { duration: 560, easing: "ease-out" });
+    } else if (kind === "thinking") {
+      motion(ring, [{ strokeDasharray: "100 100", strokeDashoffset: 100 }, { strokeDasharray: "100 100", strokeDashoffset: 0, offset: 0.55 }, { strokeDasharray: "100 100", strokeDashoffset: -100 }], { duration: 1100, easing: "ease-in-out" });
+    } else if (kind === "proud") {
+      motion(body, [{ transform: "rotate(-5deg)" }, { transform: "rotate(5deg)" }, { transform: "rotate(-3deg)" }, { transform: "rotate(0)" }], { duration: 1400, easing: "ease-in-out" });
+    }
+  }
+
+  // --- site health ---
+
+  function ageLine(label, iso, maxDays, note) {
+    const d = iso ? L.daysSince(iso, Date.now()) : null;
+    const when = d === null ? "unknown" : d === 0 ? "today" : d === 1 ? "yesterday" : `${d} days ago`;
+    const late = maxDays && d !== null && d > maxDays;
+    return h("div", { class: "health-row" },
+      h("dt", null, label),
+      h("dd", null, h("span", { class: "health-state", "data-kind": late ? "warn" : d === null ? "" : "ok" }, late ? "Late" : d === null ? "?" : "OK"),
+        ` ${note} ${when}`, late ? h("span", { class: "small muted" }, ` (expected within ${maxDays} days)`) : null));
+  }
+
+  function refreshHealth() {
+    const box = $("tool-health-data");
+    if (!box) return;
+    const news = globalThis.DP_NEWS || {};
+    const archive = globalThis.DP_NEWS_ARCHIVE || [];
+    box.replaceChildren(h("dl", { class: "health" },
+      ageLine("Statistics", ST.generatedAt, 4, "updated"),
+      ageLine("News", news.generatedAt, 2, "updated"),
+      ageLine("Past papers", RES.updated, 0, "last new paper"),
+      h("div", { class: "health-row" }, h("dt", null, "Examples"),
+        h("dd", null, `${EV.length} checked by hand, ${archive.length} news reports`))));
+    const old = EV.filter((e) => L.freshness(e.date, TODAY_ISO).level === "old").sort((a, b) => (a.date < b.date ? -1 : 1));
+    const ageing = EV.filter((e) => L.freshness(e.date, TODAY_ISO).level === "ageing").length;
+    const list = $("tool-old-examples");
+    list.replaceChildren(
+      h("p", { class: "small" }, old.length
+        ? `${old.length} example${old.length === 1 ? " is" : "s are"} over 18 months old, and ${ageing} more are 6 to 18 months old. Oldest first:`
+        : `No examples are over 18 months old. ${ageing} are 6 to 18 months old.`),
+      old.length ? h("ul", { class: "old-list" }, old.slice(0, 12).map((e) => h("li", null,
+        h("button", { type: "button", class: "link-btn", onclick: () => { closeSettings(); setTimeout(() => openEvidence(e.id), 300); } }, e.title),
+        h("span", { class: "small muted" }, ` ${L.fmtDate(e.date)}`)))) : null,
+      old.length > 12 ? h("p", { class: "small muted" }, `And ${old.length - 12} more.`) : null);
+  }
+
+  async function checkRuns() {
+    const repo = (globalThis.DP_CONFIG || {}).repo || "";
+    const out = $("tool-runs");
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { out.textContent = "No GitHub repository is set in data/config.js."; return; }
+    out.textContent = "Checking GitHub…";
+    try {
+      const res = await fetch(`https://api.github.com/repos/${repo}/actions/runs?per_page=6`, { headers: { Accept: "application/vnd.github+json" } });
+      if (!res.ok) throw new Error(`GitHub answered ${res.status}`);
+      const runs = ((await res.json()).workflow_runs || []).slice(0, 6);
+      out.replaceChildren(runs.length ? h("ul", { class: "run-list" }, runs.map((r) => {
+        const ok = r.conclusion === "success", running = r.status !== "completed";
+        const d = L.daysSince(r.created_at, Date.now());
+        const hrs = Math.round((Date.now() - Date.parse(r.created_at)) / 3600000);
+        return h("li", null,
+          h("span", { class: "health-state", "data-kind": running ? "" : ok ? "ok" : "warn" }, running ? "Running" : ok ? "OK" : "Failed"),
+          h("a", { href: r.html_url, target: "_blank", rel: "noopener" }, ` ${r.display_title || r.name}`),
+          h("span", { class: "small muted" }, ` ${hrs < 24 ? `${hrs} h ago` : `${d} days ago`}`));
+      })) : h("p", { class: "small" }, "No runs found."));
+    } catch (e) {
+      out.textContent = `Couldn't reach GitHub: ${e.message}. Try again in a minute.`;
+    }
+  }
+
+  // --- email check ---
+
+  async function sendTestEmail() {
+    if (!CONTACT.ready) { setNote("tool-email-note", "Sending isn't set up yet: deploy tools/email-relay.gs and put its address in data/config.js.", "warn"); return; }
+    setNote("tool-email-note", "Sending…");
+    try {
+      await CONTACT.send("report", "Test email from the admin panel", { Problem: "Test", Details: "This is a test from the Dotpoint admin panel. If you can read it, suggestions and reports reach your inbox.", Sent: TODAY_ISO });
+      setNote("tool-email-note", "Sent. Check your inbox (and spam) in a minute.", "ok");
+    } catch (e) {
+      setNote("tool-email-note", `It didn't send: ${e.message}`, "warn");
+    }
+  }
+
+  // --- backups ---
+
+  function downloadBackup() {
+    const blob = new Blob([JSON.stringify(L.progressBackup(progress, Date.now()), null, 2)], { type: "application/json" });
+    const a = h("a", { href: URL.createObjectURL(blob), download: `dotpoint-progress-${TODAY_ISO}.json` });
+    document.body.append(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    const c = L.progressCounts(progress);
+    setNote("tool-backup-note", `Saved a backup with ${c.dots} dot point ratings and ${c.cards} flashcards.`, "ok");
+  }
+
+  function pickBackup(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const r = L.readBackup(reader.result);
+      const confirmRow = $("tool-backup-confirm");
+      if (r.error) { setNote("tool-backup-note", r.error, "warn"); confirmRow.replaceChildren(); return; }
+      const c = L.progressCounts(r.progress);
+      setNote("tool-backup-note", `This backup${r.exportedAt ? ` from ${L.fmtDate(r.exportedAt.slice(0, 10))}` : ""} has ${c.dots} dot point ratings and ${c.cards} flashcards. Loading it replaces the progress saved in this browser.`);
+      confirmRow.replaceChildren(
+        h("button", { type: "button", class: "btn small primary", onclick: () => {
+          progress = r.progress;
+          progress.updatedAt = Date.now();
+          saveLocal();
+          Sync.schedule();
+          renderAll();
+          confirmRow.replaceChildren();
+          setNote("tool-backup-note", "Backup loaded.", "ok");
+        } }, "Load it"),
+        h("button", { type: "button", class: "btn small ghost", onclick: () => { confirmRow.replaceChildren(); setNote("tool-backup-note", ""); } }, "Cancel"));
+    };
+    reader.readAsText(file);
+  }
+
+  function buildAdminTools() {
+    const box = $("admin-tools");
+    if (!box) return;
+    const file = h("input", { type: "file", accept: ".json,application/json", class: "sr-only", id: "tool-backup-file" });
+    file.addEventListener("change", () => { pickBackup(file.files[0]); file.value = ""; });
+    const buddySeg = h("div", { class: "seg", id: "tool-buddy-seg", role: "group", "aria-label": "Study buddy preview" },
+      ["on", "off"].map((v) => h("button", { type: "button", "data-choice": v, "aria-pressed": String((buddyOn() ? "on" : "off") === v),
+        onclick: () => {
+          writeKey(BUDDY_KEY, v === "on" ? "on" : null);
+          for (const b of $("tool-buddy-seg").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.choice === v));
+          setBuddy(v === "on");
+        } }, v === "on" ? "On" : "Off")));
+    box.replaceChildren(
+      adminSection("progress", "Test progress",
+        h("p", { class: "small muted" }, "Sets your dot point ratings in one go, to try the unlock, the progress bars and the tiles. Your own ratings are kept until you put them back."),
+        h("div", { class: "tool-buttons" },
+          confirmButton("All confident", "Tap again to set", () => testRatings("all")),
+          confirmButton("Mixed", "Tap again to set", () => testRatings("mixed")),
+          confirmButton("All unsure", "Tap again to set", () => testRatings("none"))),
+        h("button", { type: "button", class: "btn small primary", id: "tool-restore", hidden: readKey(BACKUP_KEY) === null, onclick: restoreRatings }, "Put my ratings back"),
+        toolNote("tool-progress-note")),
+      adminSection("replay", "Replay moments",
+        h("p", { class: "small muted" }, "Closes Settings and plays it again."),
+        h("div", { class: "tool-buttons" },
+          h("button", { type: "button", class: "btn small", onclick: () => replay("intro") }, "Opening animation"),
+          h("button", { type: "button", class: "btn small", onclick: () => replay("focus") }, "Focus area finished"),
+          h("button", { type: "button", class: "btn small", onclick: () => replay("gold") }, "Gold unlock"))),
+      adminSection("preview", "Previews",
+        h("p", { class: "small muted" }, "Unfinished features, shown only in this browser."),
+        h("p", { class: "admin-label", id: "tool-buddy-h" }, "Study buddy (Dot)"),
+        buddySeg,
+        h("p", { class: "small muted" }, "Dot sits in the corner: hops on a right flashcard, wobbles on a wrong one, thinks while an essay is checked and goes gold on the unlock. Press it to say hello.")),
+      adminSection("health", "Site health",
+        h("div", { id: "tool-health-data" }),
+        h("div", { class: "tool-buttons" }, h("button", { type: "button", class: "btn small", onclick: checkRuns }, "Check the daily update runs")),
+        h("div", { id: "tool-runs", class: "small", role: "status" }),
+        h("p", { class: "admin-label" }, "Out-of-date examples"),
+        h("div", { id: "tool-old-examples" })),
+      adminSection("email", "Email",
+        h("p", { class: "small" }, CONTACT.ready ? "Suggestions and reports are emailed through your Google Apps Script." : "Not set up yet: deploy tools/email-relay.gs and put its address in data/config.js. Until then the forms open the visitor's email app."),
+        h("div", { class: "tool-buttons" }, h("button", { type: "button", class: "btn small", onclick: sendTestEmail, disabled: CONTACT.ready ? null : true }, "Send test email")),
+        toolNote("tool-email-note")),
+      adminSection("backup", "Back up progress",
+        h("p", { class: "small muted" }, "Save your ratings, flashcards and study days to a file, and load them on another computer or browser."),
+        h("div", { class: "tool-buttons" },
+          h("button", { type: "button", class: "btn small", onclick: downloadBackup }, "Download backup"),
+          h("button", { type: "button", class: "btn small", onclick: () => file.click() }, "Load a backup"), file),
+        toolNote("tool-backup-note"),
+        h("div", { class: "tool-buttons", id: "tool-backup-confirm" })));
+    if (adminOpenSections.has("health")) refreshHealth();
   }
 
   const HOLD_LABEL = "Hold to reset all progress";
@@ -1209,6 +1538,7 @@
     motion(m, [{ transform: "scale(1)" }, { transform: "scale(1.7)" }, { transform: "scale(0.9)" }, { transform: "scale(1)" }],
       { duration: 460, easing: "cubic-bezier(.3,1.6,.5,1)" });
     if (st !== "confident") return;
+    buddyReact("happy");
     const r = m.getBoundingClientRect();
     dotBurst(r.left + r.width / 2, r.top + r.height / 2, 12);
     const fa = dpIndex[dpId].focus;
@@ -2201,6 +2531,7 @@
       if (b) { const r = b.getBoundingClientRect(); dotBurst(r.left + r.width / 2, r.top + r.height / 2, 10); }
     }
     commit((p) => { p.cards[c.id] = L.grade(p.cards[c.id], result, TODAY); });
+    if (result !== "hard") buddyReact(result === "good" ? "happy" : "oops");
     d.results[result]++;
     d.log[d.i] = result;
     if (result === "again" && !d.requeued[c.id]) { d.requeued[c.id] = true; d.queue.push(c); }
@@ -2371,6 +2702,7 @@
   }
 
   function runCheck() {
+    buddyReact("thinking");
     const E = ui.essay, d = E.draft;
     const question = questionText(d);
     const essay = d.text.trim();
@@ -2497,6 +2829,7 @@
     for (const b of $("gold-seg").querySelectorAll("button")) b.addEventListener("click", () => setGold(b.dataset.choice));
     setupAdmin();
     setupSwitches();
+    if (adminUnlocked() && buddyOn()) setBuddy(true);
     updateGold(false);
     setupResetHold();
     $("report-form").addEventListener("submit", (e) => { e.preventDefault(); sendReport(); });

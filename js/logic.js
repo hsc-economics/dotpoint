@@ -261,6 +261,29 @@
     return all.length > 0 && all.every((dp) => dotpointStatus(dp.id, progress, deck, today) === "confident");
   }
 
+  // ---------- admin tools: progress backups and data ages ----------
+
+  // A backup file: the whole saved progress, labelled so a stray file can't be loaded by mistake.
+  function progressBackup(progress, nowMs) {
+    return { app: "dotpoint", kind: "progress", version: 1, exportedAt: new Date(nowMs).toISOString(), progress };
+  }
+
+  // Reads a backup file's text. Returns { progress, exportedAt } or { error } in plain words.
+  function readBackup(text) {
+    let data;
+    try { data = JSON.parse(String(text)); } catch (e) { return { error: "That file isn't a Dotpoint backup: it can't be read." }; }
+    if (!isPlain(data) || data.app !== "dotpoint" || data.kind !== "progress" || !isPlain(data.progress)) {
+      return { error: "That file isn't a Dotpoint progress backup." };
+    }
+    return { progress: normaliseProgress(data.progress), exportedAt: String(data.exportedAt || "").slice(0, 30) };
+  }
+
+  // Whole days between an ISO date or timestamp and now, or null when the date can't be read.
+  function daysSince(iso, nowMs) {
+    const t = Date.parse(String(iso || ""));
+    return Number.isNaN(t) ? null : Math.max(0, Math.floor((nowMs - t) / 86400000));
+  }
+
   // ---------- search ----------
 
   function tokens(s) {
@@ -785,7 +808,7 @@
     grade, isDue, dueQueue, dayNumber,
     latest, yearChange, fmtValue, fmtDelta, periodOf, citationSentence, sentenceValue, sourceShort, isDaily,
     statCards, evidenceCards, termCards, buildDeck,
-    slug, dotpointIndex, dotpointStatus, syllabusComplete, tokens, searchEvidence,
+    slug, dotpointIndex, dotpointStatus, syllabusComplete, progressBackup, readBackup, daysSince, tokens, searchEvidence,
     emptyProgress, normaliseProgress, progressCounts, mergeProgress, suggestions, cleanReport,
     MASTERY, skillLevel, skillTree, branchRows, nextSkill, streak, points, relatedIndicators, relatedExamples,
     sequence, searchAll, timeAgo, recentNews, andList, newsReports,
