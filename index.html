@@ -35,6 +35,7 @@
   --band: rgba(238, 221, 58, 0.38);
   --lift: 0 18px 40px -24px rgba(24, 33, 29, 0.35);
   --lift-sm: 0 8px 20px -14px rgba(24, 33, 29, 0.45);
+  --chev: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Cpath d=%27M4 6l4 4 4-4%27 fill=%27none%27 stroke=%27%2356625c%27 stroke-width=%271.8%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E"); /* the dropdown arrow, drawn like the open/close chevrons */
 
   --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --font-body: "IBM Plex Sans", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
@@ -60,6 +61,7 @@
     --chart-area: rgba(230, 236, 231, 0.07); --band: rgba(227, 212, 69, 0.18);
     --lift: 0 18px 40px -20px rgba(0, 0, 0, 0.6);
     --lift-sm: 0 8px 20px -12px rgba(0, 0, 0, 0.7);
+    --chev: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Cpath d=%27M4 6l4 4 4-4%27 fill=%27none%27 stroke=%27%23a0ada6%27 stroke-width=%271.8%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E");
     color-scheme: dark;
   }
 }
@@ -71,6 +73,7 @@
   --chart-area: rgba(230, 236, 231, 0.07); --band: rgba(227, 212, 69, 0.18);
   --lift: 0 18px 40px -20px rgba(0, 0, 0, 0.6);
   --lift-sm: 0 8px 20px -12px rgba(0, 0, 0, 0.7);
+  --chev: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Cpath d=%27M4 6l4 4 4-4%27 fill=%27none%27 stroke=%27%23a0ada6%27 stroke-width=%271.8%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E");
   color-scheme: dark;
 }
 
@@ -653,22 +656,33 @@ kbd { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 600; bor
 .dir-marks { display: flex; flex-wrap: wrap; gap: 5px; }
 
 /* ---------- filters ---------- */
+/* Every box draws the same way in every browser: one height, regular-weight text (not the label's bold),
+   and the site's own arrow on dropdowns instead of the system's. */
 .field {
-  width: 100%; min-height: 44px; border: 1px solid var(--rule-strong); border-radius: var(--r-sm); background: var(--surface);
-  padding: 9px 12px; min-width: 0; font-size: var(--fs-md);
+  width: 100%; min-height: 44px; border: 1px solid var(--rule-strong); border-radius: var(--r-sm); background-color: var(--surface);
+  padding: 9px 12px; min-width: 0; font-size: var(--fs-md); font-weight: 400; line-height: 1.5;
+  -webkit-appearance: none; appearance: none;
 }
+select.field {
+  padding-right: 38px; cursor: pointer; text-overflow: ellipsis;
+  background-image: var(--chev); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px;
+}
+select.field:hover, input.field:hover { border-color: var(--ink); }
+input[type="search"].field::-webkit-search-decoration { -webkit-appearance: none; }
 .field:focus-visible { outline: none; border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
 .ev-layout { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: clamp(28px, 3vw, 56px); align-items: start; }
 .filter-side { position: sticky; top: 84px; display: grid; gap: 14px; }
-.filter-side label { display: grid; gap: 6px; font-size: var(--fs-sm); font-weight: 600; }
+.filter-side label { display: grid; gap: 6px; font-size: var(--fs-sm); font-weight: 600; line-height: 1.5; } /* whole-pixel lines keep the gaps even */
 .filter-side .btn { justify-self: start; }
+.filter-side .btn.ghost { padding-inline: 0; border-inline-width: 0; } /* flush with the labels above */
+.filter-side .btn.ghost:hover { background: none; text-decoration-thickness: 2px; }
 .ev-main { display: grid; gap: 6px; min-width: 0; } /* same gap as a filter label and its field */
-.ev-main .result-line { margin: 0; }
+.ev-main .result-line { margin: 0; line-height: 1.5; } /* same line height as the filter labels beside it */
 .ev-tags { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 @media (max-width: 860px) {
   .ev-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .filter-side { position: static; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
-  .filter-side label:first-child { grid-column: 1 / -1; }
+  .filter-side label:first-child, .filter-side > :not(label) { grid-column: 1 / -1; } /* search, the clear button and the note use the full width */
 }
 @media (max-width: 560px) {
   .ev-head { grid-template-columns: minmax(0, 1fr); padding: 16px 48px 16px 16px; }
