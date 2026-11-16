@@ -491,8 +491,9 @@ dialog.sheet::backdrop { background: rgba(18, 24, 21, 0.24); }
 .sheet-head + .set-group { margin-top: 4px; }
 .set-group h3 { margin: 0; font-size: var(--fs-md); }
 .set-group p { margin: 0; }
-.set-group .seg { display: flex; }
-.set-group .seg button { flex: 1 1 0; justify-content: center; min-height: 44px; padding-inline: 8px; }
+/* settings switches: equal columns that fill the row, so every option gets exactly the same width */
+.set-group .seg, .admin-panel .seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); width: 100%; }
+.set-group .seg button, .admin-panel .seg button { justify-content: center; text-align: center; min-height: 44px; padding-inline: 8px; }
 .set-counts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin: 4px 0; }
 .set-count { display: flex; flex-direction: column-reverse; }
 .set-count dd { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--fs-lg); line-height: 1.15; font-variant-numeric: tabular-nums; }
@@ -511,8 +512,6 @@ dialog.sheet::backdrop { background: rgba(18, 24, 21, 0.24); }
 #admin-msg:empty { display: none; }
 #admin-msg { color: var(--bad); }
 .admin-panel .btn { justify-self: start; }
-.admin-panel .seg { display: flex; }
-.admin-panel .seg button { flex: 1 1 0; justify-content: center; min-height: 44px; padding-inline: 8px; }
 
 /* hold to reset: a red bar sweeps across while it's held down, turning the words over as it passes */
 .hold-btn {
