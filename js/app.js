@@ -151,9 +151,9 @@
     setTimeout(() => layer.remove(), 3400);
   }
 
-  // The opening moment, once per visit: a supply and demand diagram draws itself, the equilibrium
-  // point lands as the yellow dot, a pen circles it, and that circled point flies into the logo while
-  // the paper closes in around it. A click or key press skips it.
+  // The opening moment, once per visit: three dot points are jotted down like notes, their lines
+  // pull back, the three dots slide together into one yellow dot, a pen circles it, and that circled
+  // dot flies into the logo while the paper closes in around it. A click or key press skips it.
   function introDot() {
     try {
       if (sessionStorage.getItem("dotpoint.intro")) return;
@@ -165,50 +165,25 @@
     if (!t.width || t.bottom < 0) return;
     const vw = window.innerWidth, vh = window.innerHeight;
     const cx = vw / 2, cy = vh / 2;
-    const D = Math.round(Math.min(vw, vh, 740) * 0.62); // the diagram; the lines cross at its centre
-    const L = Math.round(D * 0.32);                     // the logo, with its dot on that crossing
+    const D = Math.round(Math.min(vw, vh, 700) * 0.6); // the notes, centred on the screen
+    const L = Math.round(D * 0.34);                    // the logo, with its dot where the notes meet
 
-    const draws = (cls, d) => s("path", { class: `${cls} ig-draw`, pathLength: 1, d });
-    const graph = s("svg", { class: "intro-graph", viewBox: "0 0 100 100", style: `width:${D}px;height:${D}px;margin:${-D / 2}px 0 0 ${-D / 2}px` },
-      draws("ig-axis", "M6 4 V94 H96"),
-      s("path", { class: "ig-guide", d: "M50 50 H6 M50 50 V94" }),
-      draws("ig-curve", "M18 18 L82 82"),
-      draws("ig-curve", "M18 82 L82 18"),
-      s("text", { x: 6, y: -2, "text-anchor": "middle" }, "P"), s("text", { x: 99, y: 96 }, "Q"),
-      s("text", { x: 85, y: 88 }, "D"), s("text", { x: 85, y: 18 }, "S"));
+    // In a 100 x 100 box: three notes, each a dot point and a line of writing. The dots meet at (50, 50).
+    const ROWS = [{ y: 32, w: 52 }, { y: 50, w: 40 }, { y: 68, w: 46 }];
+    const DOT_X = 22, DOT_R = 4.2, LINE_X = 32;
+    const notes = s("svg", { class: "intro-notes", viewBox: "0 0 100 100", style: `width:${D}px;height:${D}px;margin:${-D / 2}px 0 0 ${-D / 2}px` },
+      ...ROWS.map((r) => s("g", null,
+        s("rect", { class: "in-line", x: LINE_X, y: r.y - 2.2, width: r.w, height: 4.4, rx: 2.2 }),
+        s("circle", { class: "in-dot", cx: DOT_X, cy: r.y, r: DOT_R }))));
     const mark = target.cloneNode(true);
     mark.setAttribute("class", "intro-mark");
     const left = cx - (37 / 64) * L, top = cy - (37 / 64) * L; // the logo's dot centre is at (37, 37) of 64
     mark.setAttribute("style", `width:${L}px;height:${L}px;left:${left}px;top:${top}px`);
     mark.querySelectorAll(".brand-line").forEach((el) => el.setAttribute("pathLength", "1"));
-    const veil = h("div", { class: "intro-veil" }, graph);
+    const veil = h("div", { class: "intro-veil" }, notes);
     const stage = h("div", { class: "intro", "aria-hidden": "true" }, veil, mark);
     document.body.append(stage);
     target.style.visibility = "hidden";
-
-    const draw = (el, delay, duration) => el.animate([
-      { strokeDashoffset: 1, opacity: 0 }, { opacity: 1, offset: 0.04 }, { strokeDashoffset: 0, opacity: 1 },
-    ], { delay, duration, easing: "cubic-bezier(.5,0,.3,1)", fill: "both" });
-    const fadeIn = (el, delay) => el.animate([{ opacity: 0 }, { opacity: 1 }], { delay, duration: 260, fill: "both" });
-    const [axis, demand, supply] = graph.querySelectorAll(".ig-draw");
-    const [ring, note] = mark.querySelectorAll(".brand-line");
-    draw(axis, 0, 450);
-    draw(demand, 200, 520);
-    draw(supply, 320, 520);
-    graph.querySelectorAll("text").forEach((el, i) => fadeIn(el, 380 + i * 60));
-    mark.querySelector(".brand-dot").animate([{ transform: "scale(0)" }, { transform: "scale(1.2)", offset: 0.6 }, { transform: "scale(1)" }],
-      { delay: 780, duration: 380, easing: "cubic-bezier(.3,1.4,.5,1)", fill: "both" });
-    fadeIn(graph.querySelector(".ig-guide"), 880);
-    draw(ring, 980, 500);
-    draw(note, 1420, 200);
-    graph.animate([{ opacity: 1 }, { opacity: 0 }], { delay: 1640, duration: 260, fill: "forwards" });
-
-    const dx = t.left + t.width / 2 - (left + L / 2);
-    const dy = t.top + t.height / 2 - (top + L / 2);
-    const fly = { delay: 1720, duration: 620, easing: "cubic-bezier(.6,0,.2,1)", fill: "both" };
-    const flight = mark.animate([{ transform: "translate(0, 0) scale(1)" }, { transform: `translate(${dx}px, ${dy}px) scale(${t.width / L})` }], fly);
-    const at = `at ${t.left + t.width / 2}px ${t.top + t.height / 2}px`;
-    veil.animate([{ clipPath: `circle(${Math.ceil(Math.hypot(vw, vh))}px ${at})` }, { clipPath: `circle(0px ${at})` }], fly);
 
     let finished = false;
     const finish = () => {
@@ -220,10 +195,47 @@
         { duration: 360, easing: "cubic-bezier(.3,1.6,.5,1)" });
       window.removeEventListener("keydown", finish);
     };
-    flight.onfinish = finish;
     stage.addEventListener("click", finish);
     window.addEventListener("keydown", finish);
     setTimeout(finish, 3200); // never leave the page covered, even if animations are paused
+
+    try {
+      const ease = "cubic-bezier(.5,0,.3,1)";
+      const draw = (el, delay, duration) => el.animate([
+        { strokeDashoffset: 1, opacity: 0 }, { opacity: 1, offset: 0.04 }, { strokeDashoffset: 0, opacity: 1 },
+      ], { delay, duration, easing: ease, fill: "both" });
+      const dots = notes.querySelectorAll(".in-dot"), lines = notes.querySelectorAll(".in-line");
+      ROWS.forEach((r, i) => {
+        // jotted down one after another: the dot, then its line written out from left to right
+        dots[i].animate([{ transform: "scale(0)" }, { transform: "scale(1.25)", offset: 0.6 }, { transform: "scale(1)" }],
+          { delay: 60 + i * 140, duration: 260, easing: "cubic-bezier(.3,1.4,.5,1)", fill: "both" });
+        lines[i].animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }],
+          { delay: 140 + i * 140, duration: 340, easing: ease, fill: "both" });
+        // then the lines pull back and the dots slide together
+        lines[i].animate([{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }],
+          { delay: 860 + i * 40, duration: 260, easing: "cubic-bezier(.6,0,.8,.4)", fill: "forwards" });
+        dots[i].animate([{ transform: "translate(0, 0)" }, { transform: `translate(${50 - DOT_X}px, ${50 - r.y}px)` }],
+          { delay: 1020, duration: 300, easing: "cubic-bezier(.5,0,.2,1)", fill: "forwards" });
+        dots[i].animate([{ opacity: 1 }, { opacity: 0 }], { delay: 1300, duration: 90, fill: "forwards" });
+      });
+      // where they meet, the logo's dot swells out of them and the pen circles it
+      mark.querySelector(".brand-dot").animate([{ transform: "scale(0.2)", opacity: 0 }, { transform: "scale(1.15)", opacity: 1, offset: 0.6 }, { transform: "scale(1)", opacity: 1 }],
+        { delay: 1270, duration: 340, easing: "cubic-bezier(.3,1.4,.5,1)", fill: "both" });
+      const [ring, note] = mark.querySelectorAll(".brand-line");
+      draw(ring, 1420, 420);
+      draw(note, 1800, 160);
+
+      const dx = t.left + t.width / 2 - (left + L / 2);
+      const dy = t.top + t.height / 2 - (top + L / 2);
+      const fly = { delay: 1990, duration: 600, easing: "cubic-bezier(.6,0,.2,1)", fill: "both" };
+      const flight = mark.animate([{ transform: "translate(0, 0) scale(1)" }, { transform: `translate(${dx}px, ${dy}px) scale(${t.width / L})` }], fly);
+      const at = `at ${t.left + t.width / 2}px ${t.top + t.height / 2}px`;
+      veil.animate([{ clipPath: `circle(${Math.ceil(Math.hypot(vw, vh))}px ${at})` }, { clipPath: `circle(0px ${at})` }], fly);
+
+      flight.onfinish = finish;
+    } catch (e) {
+      finish(); // something went wrong: show the page rather than a blank cover
+    }
   }
 
   let toastTimer = null;
