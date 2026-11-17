@@ -2,6 +2,49 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-ec207f4236",
+  "title": "UK unemployment unexpectedly eases to 4.6% as government releases Milburn report",
+  "date": "2026-11-18",
+  "published": "2026-11-17T13:44:09Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/2026/nov/17/uk-unemployment-wage-growth-milburn-report",
+  "desc": "Wage growth falls to 3.5% in September, as ministers examine how best to get young people into work",
+  "keyFigure": "4.6%",
+  "dotpoints": [
+   "iss-unemployment-rate"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-0a0e369d3f",
+  "title": "Ed Miliband announces first sanctions on Israeli firms working in West Bank",
+  "date": "2026-11-17",
+  "published": "2026-11-17T12:18:08Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/world/2026/nov/17/ed-miliband-israel-west-bank-settlements-sanctions",
+  "desc": "Move is designed to hinder building of more illegal settlements, which Foreign Office says Israel has ‘refused to clamp down on’",
+  "keyFigure": "",
+  "dotpoints": [
+   "glb-vulnerability",
+   "fin-role"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-7bd84e7589",
+  "title": "Chalmers proposes rules to allow super to invest in housing, energy, startups",
+  "date": "2026-11-17",
+  "published": "2026-11-17T11:30:19Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-17/chalmers-proposes-new-rules-for-super-funds/107396462",
+  "desc": "Treasurer Jim Chalmers will unveil his long-awaited changes to the rules guiding what super funds can invest in, facilitating riskier investments with possible higher returns, such as startups.",
+  "keyFigure": "",
+  "dotpoints": [
+   "fin-housing"
+  ],
+  "also": []
+ },
+ {
   "id": "n-9ffe763fc5",
   "title": "What to know about the online banking delays affecting major US banks",
   "date": "2026-11-17",
