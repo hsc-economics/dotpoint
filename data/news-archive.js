@@ -2,6 +2,67 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-9ffe763fc5",
+  "title": "What to know about the online banking delays affecting major US banks",
+  "date": "2026-11-17",
+  "published": "2026-11-17T04:32:24Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-17/online-banking-delays-us-banks/107395034",
+  "desc": "Thousands of customers reported difficulty accessing online accounts at several major banks and the money transfer service Zelle.",
+  "keyFigure": "",
+  "dotpoints": [
+   "fin-role"
+  ],
+  "also": [
+   {
+    "outlet": "The Guardian",
+    "url": "https://www.theguardian.com/business/2026/nov/16/us-bank-outage-chase-wells-fargo"
+   }
+  ]
+ },
+ {
+  "id": "n-9da34efeed",
+  "title": "RBA board members who voted against rate hike warned of ‘materially sharper downturn’",
+  "date": "2026-11-17",
+  "published": "2026-11-17T04:05:04Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/australia-news/2026/nov/17/myefo-mid-year-budget-update-australia-treasurer-jim-chalmers",
+  "desc": "Minutes released from latest Reserve Bank meeting as Jim Chalmers says Myefo ‘will cut enough, but not too much’",
+  "keyFigure": "",
+  "dotpoints": [
+   "mp-cash-rate"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-279edf8f51",
+  "title": "Greens offer government a path to pass trusts and capital gains tax changes",
+  "date": "2026-11-17",
+  "published": "2026-11-17T03:58:05Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-17/greens-offer-government-path-to-pass-trusts-cgt/107394802",
+  "desc": "The minor party's support will be critical to pass a minimum tax on trusts and a carve-out for start-ups in the capital gains tax regime.",
+  "keyFigure": "",
+  "dotpoints": [
+   "gov-tax-reform"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-db43089f31",
+  "title": "Albanese signs on to Trump’s AI supply chain pact before leaders’ meeting at Quad summit",
+  "date": "2026-11-17",
+  "published": "2026-11-16T21:00:21Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/australia-news/2026/nov/16/albanese-treads-tightrope-in-upcoming-trump-meeting-wanting-indo-pacific-engagement-and-end-to-iran-and-ukraine-wars",
+  "desc": "Quad leaders’ summit in Philippines is Trump’s first, as Australia joins US and Japan to protect AI technologies in face of China’s efforts to dominate",
+  "keyFigure": "",
+  "dotpoints": [
+   "glb-vulnerability"
+  ],
+  "also": []
+ },
+ {
   "id": "n-b1ddc4b66e",
   "title": "If Australians don’t trust the RBA on inflation, the interest rate pain may have to get worse",
   "date": "2026-11-17",
