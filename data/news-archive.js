@@ -28,7 +28,12 @@ globalThis.DP_NEWS_ARCHIVE = [
    "glb-vulnerability",
    "fin-role"
   ],
-  "also": []
+  "also": [
+   {
+    "outlet": "BBC News",
+    "url": "https://www.bbc.co.uk/news/articles/cvglr977x3z0o"
+   }
+  ]
  },
  {
   "id": "n-7bd84e7589",
