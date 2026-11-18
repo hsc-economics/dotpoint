@@ -2,6 +2,53 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-9593143581",
+  "title": "UK inflation rises to 3.6% after petrol and diesel prices hit record high",
+  "date": "2026-11-18",
+  "published": "2026-11-18T07:44:21Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/2026/nov/18/uk-inflation-rises-energy-prices-iran-war-oil",
+  "desc": "Increase in October piles pressure on households as Iran war pushes up oil cost and rattles global economy",
+  "keyFigure": "3.6%",
+  "dotpoints": [
+   "iss-inflation-measure"
+  ],
+  "also": [
+   {
+    "outlet": "BBC News",
+    "url": "https://www.bbc.co.uk/news/articles/cmy498kdkx3xo"
+   }
+  ]
+ },
+ {
+  "id": "n-a7c4927d8d",
+  "title": "Australian wages grow at fastest pace since 2023 – but prices are climbing even more quickly",
+  "date": "2026-11-18",
+  "published": "2026-11-18T04:33:40Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/australia-news/2026/nov/18/wages-grow-at-fastest-pace-since-2023-but-prices-are-climbing-even-more-quickly",
+  "desc": "Wage rates climb about 1 percentage point faster than before pandemic, triggering warnings of a sixth RBA rate rise",
+  "keyFigure": "1 percentage point",
+  "dotpoints": [
+   "hh-min-wage"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-62d319c9b6",
+  "title": "Queensland, NT economic growth beats the rest of the nation, led by mining",
+  "date": "2026-11-18",
+  "published": "2026-11-18T04:28:49Z",
+  "outlet": "The Conversation",
+  "url": "https://theconversation.com/queensland-nt-economic-growth-beats-the-rest-of-the-nation-led-by-mining-296503",
+  "desc": "Incomes are also more volatile in the mining-heavy states.",
+  "keyFigure": "",
+  "dotpoints": [
+   "iss-growth-real-gdp"
+  ],
+  "also": []
+ },
+ {
   "id": "n-6eda89b19e",
   "title": "Food relief takes election back seat but cost of living front of mind for voters",
   "date": "2026-11-18",
