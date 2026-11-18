@@ -2,6 +2,49 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-ed344170b4",
+  "title": "Israel delays building contracts for West Bank settlement after UK sanctions",
+  "date": "2026-11-19",
+  "published": "2026-11-18T14:05:38Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/world/2026/nov/18/israel-construction-contracts-e1-west-bank-settlement-uk-sanctions",
+  "desc": "Attorney general says E1 settlement decision should not be taken by caretaker government led by Netanyahu",
+  "keyFigure": "",
+  "dotpoints": [
+   "glb-vulnerability",
+   "fin-role"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-f5e864cdd6",
+  "title": "An Australian business summit on productivity? It’s about time. Here are three fantasy agenda items",
+  "date": "2026-11-19",
+  "published": "2026-11-18T14:00:03Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/australia-news/commentisfree/2026/nov/19/australian-business-summit-on-productivity-three-suggested-agenda-items",
+  "desc": "Instead of pushing for less tax, the reported alliance of 30 business and industry organisations should not miss the opportunity to step up",
+  "keyFigure": "",
+  "dotpoints": [
+   "iss-growth-trends"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-7f0ebec0fc",
+  "title": "Ministers to drop foie gras imports ban to help seal EU food trade deal",
+  "date": "2026-11-19",
+  "published": "2026-11-18T13:47:04Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/politics/2026/nov/18/labour-drops-foie-gras-import-ban-eu-food-trade-deal",
+  "desc": "Animal welfare charities criticise ‘backwards step’ on foie gras, production of which has been banned in UK since 2007",
+  "keyFigure": "",
+  "dotpoints": [
+   "int-trade"
+  ],
+  "also": []
+ },
+ {
   "id": "n-9593143581",
   "title": "UK inflation rises to 3.6% after petrol and diesel prices hit record high",
   "date": "2026-11-18",
