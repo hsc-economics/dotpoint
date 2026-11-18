@@ -2,6 +2,48 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-6eda89b19e",
+  "title": "Food relief takes election back seat but cost of living front of mind for voters",
+  "date": "2026-11-18",
+  "published": "2026-11-17T19:30:22Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-18/cost-of-living-voting-vic-state-election-food-relief/107382428",
+  "desc": "Food relief centres across regional Victoria want government help to continue to supply 100,000 meals a week.",
+  "keyFigure": "",
+  "dotpoints": [
+   "iss-inflation-measure"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-df9ae04211",
+  "title": "Has Chalmers really made $180 billion in budget savings? It depends where you start from",
+  "date": "2026-11-18",
+  "published": "2026-11-17T19:08:25Z",
+  "outlet": "The Conversation",
+  "url": "https://theconversation.com/has-chalmers-really-made-180-billion-in-budget-savings-it-depends-where-you-start-from-296479",
+  "desc": "If the government has been saving money, why is total spending still rising?",
+  "keyFigure": "$180 billion",
+  "dotpoints": [
+   "fp-stance"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-2d6e0dc8ee",
+  "title": "Carney looks to China as Trump tariffs squeeze Canada's car industry",
+  "date": "2026-11-18",
+  "published": "2026-11-17T18:58:57Z",
+  "outlet": "BBC News",
+  "url": "https://www.bbc.co.uk/news/articles/cq98xlz09ye0o",
+  "desc": "The PM has suggested Chinese automakers could replace American ones in Canada - but some say that would not be easy.",
+  "keyFigure": "",
+  "dotpoints": [
+   "glb-protection"
+  ],
+  "also": []
+ },
+ {
   "id": "n-ec207f4236",
   "title": "UK unemployment unexpectedly eases to 4.6% as government releases Milburn report",
   "date": "2026-11-18",
