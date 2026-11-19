@@ -2,6 +2,34 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-50a5a49960",
+  "title": "AI demand will push up interest rates around the world, IMF head warns",
+  "date": "2026-11-20",
+  "published": "2026-11-19T15:15:14Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/world/2026/nov/19/imf-head-warns-ai-demand-push-up-interest-rates-apec",
+  "desc": "Kristalina Georgieva says countries needed to be ready for tech rollout, adding: ‘You snooze, you lose’",
+  "keyFigure": "",
+  "dotpoints": [
+   "mp-cash-rate"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-d0e6bdb177",
+  "title": "Coalition fight emerges as Taylor urged to ‘stand up’ to Nationals on EU free trade deal",
+  "date": "2026-11-20",
+  "published": "2026-11-19T14:00:50Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/australia-news/2026/nov/20/coalition-fight-emerges-as-taylor-urged-to-stand-up-to-nationals-on-eu-free-trade-deal",
+  "desc": "Matt Canavan has attempted to block the deal before a formal Coalition decision is reached, leaving some Liberals fearing they are being wedged",
+  "keyFigure": "",
+  "dotpoints": [
+   "int-trade"
+  ],
+  "also": []
+ },
+ {
   "id": "n-bef9892dbf",
   "title": "Pre-Christmas rate hike unlikely as unemployment rate jumps to highest level in five years",
   "date": "2026-11-19",
