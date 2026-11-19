@@ -2,6 +2,69 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-bef9892dbf",
+  "title": "Pre-Christmas rate hike unlikely as unemployment rate jumps to highest level in five years",
+  "date": "2026-11-19",
+  "published": "2026-11-19T01:12:55Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/2026/nov/19/unemployment-rate-jumps-highest-level-five-years-job-figures",
+  "desc": "Jobless rate rises from 4.7% to 4.9% for October, latest bureau of statistics figures reveal",
+  "keyFigure": "4.7%",
+  "dotpoints": [
+   "mp-cash-rate",
+   "iss-unemployment-rate"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-584db0d8b9",
+  "title": "Claude-maker Anthropic poised for more than $1.4tn stock market debut",
+  "date": "2026-11-19",
+  "published": "2026-11-18T23:44:27Z",
+  "outlet": "BBC News",
+  "url": "https://www.bbc.co.uk/news/articles/c6742m39xgzxo",
+  "desc": "Anthropic started just five years ago an is now one of the biggest names in artificial intelligence.",
+  "keyFigure": "$1.4tn",
+  "dotpoints": [
+   "fin-role"
+  ],
+  "also": [
+   {
+    "outlet": "The Guardian",
+    "url": "https://www.theguardian.com/technology/2026/nov/18/anthropic-share-price-stock-market-ipo"
+   }
+  ]
+ },
+ {
+  "id": "n-29dd76ade5",
+  "title": "Gilts v kilts: What is happening with Scottish government bonds?",
+  "date": "2026-11-19",
+  "published": "2026-11-18T23:01:09Z",
+  "outlet": "BBC News",
+  "url": "https://www.bbc.co.uk/news/articles/cmwy8pgj2z8vo",
+  "desc": "MSPs have heard both the pros and cons of the government's plan to launch its first ever bond to the market?",
+  "keyFigure": "",
+  "dotpoints": [
+   "fin-role"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-61f958117a",
+  "title": "Factory-built housing could lift construction productivity, report says",
+  "date": "2026-11-19",
+  "published": "2026-11-18T20:30:41Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-19/committee-for-sydney-says-more-factory-made-housing-needed/107394616",
+  "desc": "A new report from the Committee for Sydney think tank says housing construction productivity has gone backwards by 20 per cent since 2013.",
+  "keyFigure": "20%",
+  "dotpoints": [
+   "fin-housing",
+   "iss-growth-trends"
+  ],
+  "also": []
+ },
+ {
   "id": "n-ed344170b4",
   "title": "Israel delays building contracts for West Bank settlement after UK sanctions",
   "date": "2026-11-19",
