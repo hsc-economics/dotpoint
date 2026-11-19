@@ -60,6 +60,10 @@ globalThis.DP_NEWS_ARCHIVE = [
    {
     "outlet": "The Guardian",
     "url": "https://www.theguardian.com/technology/2026/nov/18/anthropic-share-price-stock-market-ipo"
+   },
+   {
+    "outlet": "ABC News",
+    "url": "https://www.abc.net.au/news/2026-11-20/anthropic-ipo-three-trillion/107407020"
    }
   ]
  },
