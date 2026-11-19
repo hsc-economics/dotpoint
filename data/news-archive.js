@@ -50,6 +50,21 @@ globalThis.DP_NEWS_ARCHIVE = [
   "also": []
  },
  {
+  "id": "n-33e02f14ab",
+  "title": "Economists warn Australia getting close to recession as unemployment spikes",
+  "date": "2026-11-19",
+  "published": "2026-11-18T20:31:18Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-19/asx-markets-business-news-live-updates-thursday-19-november/107401802",
+  "desc": "Economists say Australia risks slipping into recession after the latest unemployment data.",
+  "keyFigure": "",
+  "dotpoints": [
+   "iss-unemployment-rate",
+   "iss-growth-real-gdp"
+  ],
+  "also": []
+ },
+ {
   "id": "n-61f958117a",
   "title": "Factory-built housing could lift construction productivity, report says",
   "date": "2026-11-19",
