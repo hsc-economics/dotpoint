@@ -2,6 +2,25 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-0243aca6f1",
+  "title": "Students rally across Europe over cost of living, war and education cuts",
+  "date": "2026-11-21",
+  "published": "2026-11-20T18:38:10Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-21/students-protest-in-eu-and-uk/107406996",
+  "desc": "From the shadows of the mighty Colosseum in Rome to Parliament Square in London, and in dozens of other cities across Europe, thousands of young Europeans gathered to make their voices heard on Friday.",
+  "keyFigure": "",
+  "dotpoints": [
+   "iss-inflation-measure"
+  ],
+  "also": [
+   {
+    "outlet": "BBC News",
+    "url": "https://www.bbc.co.uk/news/videos/c62l5jweqr4ko"
+   }
+  ]
+ },
+ {
   "id": "n-fd28116146",
   "title": "Anthropic shares slump on second day of trading as markets reel from AI sell-off",
   "date": "2026-11-21",
@@ -13,7 +32,12 @@ globalThis.DP_NEWS_ARCHIVE = [
   "dotpoints": [
    "fin-role"
   ],
-  "also": []
+  "also": [
+   {
+    "outlet": "BBC News",
+    "url": "https://www.bbc.co.uk/news/articles/c6808ym10vzgo"
+   }
+  ]
  },
  {
   "id": "n-2c3757b089",
