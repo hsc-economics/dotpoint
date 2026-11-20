@@ -2,6 +2,20 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-9d186dba16",
+  "title": "Bikies face Trump sanctions in 'Australian first' crackdown",
+  "date": "2026-11-20",
+  "published": "2026-11-19T22:28:44Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-20/trump-sanctions-allan-meehan-comanchero-bikie/107407392",
+  "desc": "Comanchero figurehead Allan Meehan and associate Marco Coffen may now face difficulties with everything from everyday transactions to home loans as part of the sanctions move.",
+  "keyFigure": "",
+  "dotpoints": [
+   "glb-vulnerability"
+  ],
+  "also": []
+ },
+ {
   "id": "n-50a5a49960",
   "title": "AI demand will push up interest rates around the world, IMF head warns",
   "date": "2026-11-20",
