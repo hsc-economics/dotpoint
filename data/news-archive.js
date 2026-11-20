@@ -2,6 +2,39 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-fd28116146",
+  "title": "Anthropic shares slump on second day of trading as markets reel from AI sell-off",
+  "date": "2026-11-21",
+  "published": "2026-11-20T16:26:07Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/2026/nov/20/global-stock-markets-slump-anthropic-ipo-ai-sell-off",
+  "desc": "Asian markets record worst week since 2020 as investors question huge sums being poured into AI build-out",
+  "keyFigure": "",
+  "dotpoints": [
+   "fin-role"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-2c3757b089",
+  "title": "California investigates Nvidia over whether chip exports ended up in China",
+  "date": "2026-11-20",
+  "published": "2026-11-20T09:18:30Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/technology/2026/nov/20/california-investigates-nvidia-over-whether-chip-exports-ended-up-in-china",
+  "desc": "State attorney says scandal ‘raises bright red flags’ and aims to find out if company misled investors",
+  "keyFigure": "",
+  "dotpoints": [
+   "int-trade"
+  ],
+  "also": [
+   {
+    "outlet": "BBC News",
+    "url": "https://www.bbc.co.uk/news/articles/cqn70vxp5p4no"
+   }
+  ]
+ },
+ {
   "id": "n-9d186dba16",
   "title": "Bikies face Trump sanctions in 'Australian first' crackdown",
   "date": "2026-11-20",
