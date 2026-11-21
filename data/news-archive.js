@@ -2,6 +2,40 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-b0d8a67e79",
+  "title": "Trump vows 'tremendous tax' on companies building data centres abroad",
+  "date": "2026-11-21",
+  "published": "2026-11-20T20:27:15Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-21/trump-vows-tax-companies-building-data-centres-overseas/107412162",
+  "desc": "US President Donald Trump says he is \"not allowing data centres to go into other countries\", so that America can win the AI fight against China.",
+  "keyFigure": "",
+  "dotpoints": [
+   "gov-tax-reform"
+  ],
+  "also": [
+   {
+    "outlet": "BBC News",
+    "url": "https://www.bbc.co.uk/news/articles/cmde1lw9y54ko"
+   }
+  ]
+ },
+ {
+  "id": "n-5f9e6b5ffe",
+  "title": "JP Morgan boss says he will find ways to offset ‘unfair’ rise in UK tax on banks",
+  "date": "2026-11-21",
+  "published": "2026-11-20T19:38:59Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/2026/nov/20/jp-morgan-jamie-dimon-uk-tax-hike-bank-surcharge",
+  "desc": "Jamie Dimon says he is ‘setting an example’ in seeking to claw back Labour’s increase in surcharge, from 3% to 6%",
+  "keyFigure": "3%",
+  "dotpoints": [
+   "gov-tax-reform",
+   "fin-role"
+  ],
+  "also": []
+ },
+ {
   "id": "n-0243aca6f1",
   "title": "Students rally across Europe over cost of living, war and education cuts",
   "date": "2026-11-21",
