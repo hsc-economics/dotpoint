@@ -2,6 +2,21 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-a0dc0301ad",
+  "title": "Highly lucrative: Bank of England directors illegally profited from post-abolition enslavement in Cuba",
+  "date": "2026-11-22",
+  "published": "2026-11-22T08:00:22Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/news/2026/nov/22/bank-of-england-directors-illegally-profited-enslavement-cuba",
+  "desc": "New research finds that the British-led Cobre Mining Company helped industrialise Manchester via copper deposits and enslaved African people",
+  "keyFigure": "",
+  "dotpoints": [
+   "mp-cash-rate",
+   "fin-role"
+  ],
+  "also": []
+ },
+ {
   "id": "n-b0d8a67e79",
   "title": "Trump vows 'tremendous tax' on companies building data centres abroad",
   "date": "2026-11-21",
