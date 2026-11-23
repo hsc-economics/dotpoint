@@ -2,6 +2,53 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-7f3845c3cd",
+  "title": "Catering giant to switch stock market listing to US in further blow to UK",
+  "date": "2026-11-23",
+  "published": "2026-11-23T09:54:04Z",
+  "outlet": "BBC News",
+  "url": "https://www.bbc.co.uk/news/articles/ckz74098jq5po",
+  "desc": "A growing number of firms have been leaving the UK to list shares in the US in recent years.",
+  "keyFigure": "",
+  "dotpoints": [
+   "fin-role"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-b7bb23c43b",
+  "title": "Man swaps Australia for south Wales over 'unreal' house prices as locals struggle to buy",
+  "date": "2026-11-23",
+  "published": "2026-11-23T06:03:32Z",
+  "outlet": "BBC News",
+  "url": "https://www.bbc.co.uk/news/articles/cjkgkdppk1nwo",
+  "desc": "The area has attracted investors and even a buyer from Australia, but locals struggle to afford homes.",
+  "keyFigure": "",
+  "dotpoints": [
+   "fin-housing"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-756073f765",
+  "title": "Unemployment to surpass 5% and ‘things will get a bit harder’, treasurer Jim Chalmers warns",
+  "date": "2026-11-23",
+  "published": "2026-11-23T04:17:27Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/australia-news/2026/nov/23/unemployment-to-surpass-5-and-things-will-get-a-bit-harder-treasurer-jim-chalmers-warns",
+  "desc": "Economists flag rising recession risk as government forecasts economy will grow by less than 2% in 2027 and 2028",
+  "keyFigure": "5%",
+  "dotpoints": [
+   "iss-unemployment-rate"
+  ],
+  "also": [
+   {
+    "outlet": "ABC News",
+    "url": "https://www.abc.net.au/news/2026-11-23/chalmers-flags-net-spending-cuts-in-mid-year-budget/107417628"
+   }
+  ]
+ },
+ {
   "id": "n-a0dc0301ad",
   "title": "Highly lucrative: Bank of England directors illegally profited from post-abolition enslavement in Cuba",
   "date": "2026-11-22",
