@@ -2,6 +2,63 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-3c34a3d1a9",
+  "title": "Union likens job cuts to 'Hunger Games' plotline",
+  "date": "2026-11-24",
+  "published": "2026-11-23T18:26:16Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-24/tasmanian-jobs-reinstated-others-cut-in-department-restructures/107399930",
+  "desc": "The \"work\" of choosing who would lose their public sector jobs has been done in a \"careful and considered way\", the Tasmanian government says, with a union likening it more to The Hunger Games dystopian fantasy.",
+  "keyFigure": "",
+  "dotpoints": [
+   "iss-unemployment-rate",
+   "lm-safety-net"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-8ba7c8ee27",
+  "title": "As Victorian Labor fights for survival, several unions have left its side",
+  "date": "2026-11-24",
+  "published": "2026-11-23T18:14:28Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-24/victorian-election-unions-abandon-labor/107367014",
+  "desc": "Some unions have chosen to stay out of the Victorian election campaign, while others are openly calling on members not to vote for Labor after a build-up of grievances with a 12-year-old government.",
+  "keyFigure": "",
+  "dotpoints": [
+   "lm-safety-net"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-356c846027",
+  "title": "Comedian impersonates Trump's dance moves, mocks trade talks at Canada press dinner",
+  "date": "2026-11-24",
+  "published": "2026-11-23T17:14:50Z",
+  "outlet": "BBC News",
+  "url": "https://www.bbc.co.uk/news/articles/cr930y92dyx4o",
+  "desc": "The impersonator, Canadian comedian Mark Critch, poked fun at the US president's search for a new press secretary and US-Canada trade talks.",
+  "keyFigure": "",
+  "dotpoints": [
+   "int-trade"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-7b8bae5706",
+  "title": "Flights cancelled in Belgium due to cost-of-living strike",
+  "date": "2026-11-24",
+  "published": "2026-11-23T13:34:02Z",
+  "outlet": "BBC News",
+  "url": "https://www.bbc.co.uk/news/articles/cwdr155e2d05o",
+  "desc": "A series of strikes have hit Belgium in recent months as the prime minister struggles to agree a budget to cut costs.",
+  "keyFigure": "",
+  "dotpoints": [
+   "iss-inflation-measure"
+  ],
+  "also": []
+ },
+ {
   "id": "n-7f3845c3cd",
   "title": "Catering giant to switch stock market listing to US in further blow to UK",
   "date": "2026-11-23",
