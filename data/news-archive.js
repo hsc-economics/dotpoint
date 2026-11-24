@@ -2,6 +2,48 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-6bcd67967d",
+  "title": "A recession would likely finish the Albanese government. Here’s how Jim Chalmers is trying to avoid one",
+  "date": "2026-11-25",
+  "published": "2026-11-24T14:00:49Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/australia-news/2026/nov/25/recession-threat-albanese-government-how-jim-chalmers-trying-to-avoid-one",
+  "desc": "Treasurer’s balancing act includes growing the economy, keeping a lid on inflation, cutting spending and appeasing Labor colleagues",
+  "keyFigure": "",
+  "dotpoints": [
+   "iss-growth-real-gdp"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-094d704d9a",
+  "title": "EU to impose cap on Chinese hybrid EV imports next month",
+  "date": "2026-11-24",
+  "published": "2026-11-24T10:59:40Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/2026/nov/24/eu-cap-chinese-hybrid-ev-imports-tariff-uk",
+  "desc": "Temporary quotas on vehicles entering the bloc will also apply to cars from the UK, Japan and Turkey",
+  "keyFigure": "",
+  "dotpoints": [
+   "int-trade"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-e7530cf187",
+  "title": "Campaigners urge Albanese government to reject ‘climate bomb’ coalmine expansion after Cop31",
+  "date": "2026-11-24",
+  "published": "2026-11-24T07:42:57Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/australia-news/2026/nov/24/campaigners-urge-albanese-government-to-reject-climate-bomb-coalmine-expansion-after-cop31",
+  "desc": "Hunter Valley Operations expansion in New South Wales would allow additional 430m tonnes of coal to be extracted and burned",
+  "keyFigure": "",
+  "dotpoints": [
+   "env-targets"
+  ],
+  "also": []
+ },
+ {
   "id": "n-e47041d9fa",
   "title": "Coalition turns against security pact with Vanuatu over net zero clause",
   "date": "2026-11-24",
