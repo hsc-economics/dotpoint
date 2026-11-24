@@ -2,6 +2,35 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-e47041d9fa",
+  "title": "Coalition turns against security pact with Vanuatu over net zero clause",
+  "date": "2026-11-24",
+  "published": "2026-11-24T05:51:43Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-24/opposition-turns-against-vanuatu-nakamal-agreement/107420028",
+  "desc": "The $500 million deal is a key part of the strategic architecture the government has built to reinforce Australia's position in the Pacific and stop China from gaining a military foothold.",
+  "keyFigure": "$500 million",
+  "dotpoints": [
+   "env-targets"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-6a4759087e",
+  "title": "A slash-and-burn budget update could push Australia into a recession. Jim Chalmers has a fine line to tread",
+  "date": "2026-11-24",
+  "published": "2026-11-24T01:51:56Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/2026/nov/24/mid-year-budget-cuts-recession-inflation-unemployment-australia-jim-chalmers",
+  "desc": "Labor has been complacent. But deep cuts designed to kill inflation would come at least six months too late",
+  "keyFigure": "",
+  "dotpoints": [
+   "fp-stance",
+   "iss-growth-real-gdp"
+  ],
+  "also": []
+ },
+ {
   "id": "n-3c34a3d1a9",
   "title": "Union likens job cuts to 'Hunger Games' plotline",
   "date": "2026-11-24",
@@ -42,7 +71,12 @@ globalThis.DP_NEWS_ARCHIVE = [
   "dotpoints": [
    "int-trade"
   ],
-  "also": []
+  "also": [
+   {
+    "outlet": "The Guardian",
+    "url": "https://www.theguardian.com/world/2026/nov/23/canada-trump-impersonator-press-dinner"
+   }
+  ]
  },
  {
   "id": "n-7b8bae5706",
