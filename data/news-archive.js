@@ -2,6 +2,79 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-b74d337193",
+  "title": "Australia’s inflation rate jumping to 4.9% a ‘very serious moment’ for economy, Chalmers declares",
+  "date": "2026-11-25",
+  "published": "2026-11-25T03:55:50Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/2026/nov/25/inflation-rate-australia-october-figures",
+  "desc": "Figure up from 4.3% annual rate in September and nearly double Reserve Bank’s official target of 2.5% as Australia’s cost-of-living crisis intensifies",
+  "keyFigure": "4.9%",
+  "dotpoints": [
+   "iss-inflation-measure"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-2c3ac06b5b",
+  "title": "Why inflation is up, but interest rates are not expected to follow",
+  "date": "2026-11-25",
+  "published": "2026-11-25T03:32:26Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-25/inflation-up-but-rates-not-expected-to-follow/107424642",
+  "desc": "All our economic indicator lights are flashing red, but the worst may be over.",
+  "keyFigure": "",
+  "dotpoints": [
+   "mp-cash-rate",
+   "iss-inflation-measure"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-c55a67cf0e",
+  "title": "Inflation jumps to 4.9% as fuel prices surge, but the RBA should hold rates steady",
+  "date": "2026-11-25",
+  "published": "2026-11-25T02:46:02Z",
+  "outlet": "The Conversation",
+  "url": "https://theconversation.com/inflation-jumps-to-4-9-as-fuel-prices-surge-but-the-rba-should-hold-rates-steady-297288",
+  "desc": "The RBA has spent much of this year fighting inflation.",
+  "keyFigure": "4.9%",
+  "dotpoints": [
+   "mp-cash-rate",
+   "iss-inflation-measure"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-16ca106309",
+  "title": "Inflation rises more than expected in 'RBA's worst nightmare'",
+  "date": "2026-11-25",
+  "published": "2026-11-25T00:42:21Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-25/abs-october-cpi-inflation-rises-year-/107424668",
+  "desc": "The consumer price index has come in hotter than expected and underlying inflation has also risen, leaving Australia grappling with accelerating price rises and increasing unemployment.",
+  "keyFigure": "",
+  "dotpoints": [
+   "mp-cash-rate",
+   "iss-inflation-measure"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-b9a6c47314",
+  "title": "Households braced for soaring energy bills with new price cap to be announced",
+  "date": "2026-11-25",
+  "published": "2026-11-25T00:29:58Z",
+  "outlet": "BBC News",
+  "url": "https://www.bbc.co.uk/news/articles/cm20qnq33e90o",
+  "desc": "Domestic gas prices will rise significantly in January under regulator Ofgem's new price cap.",
+  "keyFigure": "",
+  "dotpoints": [
+   "mkt-gov-intervention"
+  ],
+  "also": []
+ },
+ {
   "id": "n-6bcd67967d",
   "title": "A recession would likely finish the Albanese government. Here’s how Jim Chalmers is trying to avoid one",
   "date": "2026-11-25",
