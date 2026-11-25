@@ -2,6 +2,133 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-022fd64761",
+  "title": "Albanese had some wins this week — then inflation numbers landed with a thud",
+  "date": "2026-11-26",
+  "published": "2026-11-25T18:00:00Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-26/inflation-numbers-ruin-governments-good-week/107424930",
+  "desc": "The final week of parliament for the year has seen Labor whipping through their legislative to-do list.",
+  "keyFigure": "",
+  "dotpoints": [
+   "iss-inflation-measure"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-70258c90a4",
+  "title": "Trump's accounts traded Nvidia shares 44 times this year, records show",
+  "date": "2026-11-26",
+  "published": "2026-11-25T16:42:11Z",
+  "outlet": "BBC News",
+  "url": "https://www.bbc.co.uk/news/articles/cq772vk664yvo",
+  "desc": "A review of the US president's financial disclosures shows Donald Trump's investment portfolios have regularly traded shares in the tech giant.",
+  "keyFigure": "",
+  "dotpoints": [
+   "fin-role"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-ff16e47c0d",
+  "title": "Poundland collapses into administration, putting 12,000 jobs at risk",
+  "date": "2026-11-26",
+  "published": "2026-11-25T16:41:08Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/2026/nov/25/poundland-administration-jobs-at-risk-gordon-brothers",
+  "desc": "US owner Gordon Brothers rejected at least two last-ditch bids for UK budget retailer",
+  "keyFigure": "",
+  "dotpoints": [
+   "iss-unemployment-rate"
+  ],
+  "also": [
+   {
+    "outlet": "BBC News",
+    "url": "https://www.bbc.co.uk/news/articles/cm3vgdn037z4o"
+   }
+  ]
+ },
+ {
+  "id": "n-a61ab511a4",
+  "title": "US inflation hits highest since May after prices climb 3.8% over the last year",
+  "date": "2026-11-26",
+  "published": "2026-11-25T15:46:15Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/2026/nov/25/consumer-prices-september-october-energy-inflation",
+  "desc": "Rise occurs amid soaring energy prices, according to last inflation reading before a crucial Fed board meeting",
+  "keyFigure": "3.8%",
+  "dotpoints": [
+   "iss-inflation-measure"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-004d71e16a",
+  "title": "Trump proposing new tariffs on 14 partners including China and EU",
+  "date": "2026-11-26",
+  "published": "2026-11-25T14:59:44Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/us-news/2026/nov/25/trump-new-china-tariffs-europe",
+  "desc": "Administration is suggesting an added 20% tax on Chinese imports, which would bring the total to about 40%",
+  "keyFigure": "20%",
+  "dotpoints": [
+   "glb-protection"
+  ],
+  "also": [
+   {
+    "outlet": "ABC News",
+    "url": "https://www.abc.net.au/news/2026-11-26/trump-new-tariffs-major-trading-partners/107425504"
+   },
+   {
+    "outlet": "BBC News",
+    "url": "https://www.bbc.co.uk/news/articles/c893r9ke5p97o"
+   }
+  ]
+ },
+ {
+  "id": "n-69eb7435a2",
+  "title": "Australia is inching closer to a recession after one RBA rate rise too many",
+  "date": "2026-11-26",
+  "published": "2026-11-25T14:00:30Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/grogonomics/2026/nov/25/australian-economy-unemployment-rba-interest-rate-recession",
+  "desc": "It’s not like we couldn’t see the rise in unemployment coming.",
+  "keyFigure": "",
+  "dotpoints": [
+   "mp-cash-rate",
+   "iss-growth-real-gdp"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-f7275af09f",
+  "title": "We know the bad news already. Here’s the good news on cost of living and the economy",
+  "date": "2026-11-25",
+  "published": "2026-11-25T07:22:28Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/australia-news/2026/nov/25/we-know-the-bad-news-already-heres-the-good-news-on-cost-of-living-and-the-economy",
+  "desc": "Well, maybe not good, but hopefully better – at least on the inflation front",
+  "keyFigure": "",
+  "dotpoints": [
+   "iss-inflation-measure"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-cb95e5fb19",
+  "title": "Door not closed on capital gains carve-out for businesses as inquiry confirmed",
+  "date": "2026-11-25",
+  "published": "2026-11-25T06:52:03Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-25/door-not-closed-on-capital-gains-carve-out-for-business/107427094",
+  "desc": "Allegra Spender's proposal to carve out all active businesses and business assets from Labor's capital gains tax changes could yet succeed, with the carve-outs issue to be referred to a Senate inquiry.",
+  "keyFigure": "",
+  "dotpoints": [
+   "gov-tax-reform"
+  ],
+  "also": []
+ },
+ {
   "id": "n-b74d337193",
   "title": "Australia’s inflation rate jumping to 4.9% a ‘very serious moment’ for economy, Chalmers declares",
   "date": "2026-11-25",
