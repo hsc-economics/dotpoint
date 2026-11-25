@@ -2,6 +2,35 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-cf1ea908a0",
+  "title": "US stocks tumble as AI rout and Trump tariffs rattle markets",
+  "date": "2026-11-26",
+  "published": "2026-11-25T19:44:30Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-26/nasdaq-ai-tariffs-rattle-markets/107428016",
+  "desc": "Chip makers led the declines, with Nvidia falling 8.7 per cent and the broader Philadelphia Semiconductor Index losing 7.3 per cent.",
+  "keyFigure": "8.7%",
+  "dotpoints": [
+   "glb-protection"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-882812167e",
+  "title": "UK food inflation could hit 5% next year, Bank of England says",
+  "date": "2026-11-26",
+  "published": "2026-11-25T19:25:57Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/2026/nov/25/uk-food-inflation-sharp-rise-next-year-mounting-cost-pressures-bank-of-england",
+  "desc": "Sharp rise expected as cost pressures mount, with experts factoring in energy price cap hike and potential impact of El Niño",
+  "keyFigure": "5%",
+  "dotpoints": [
+   "mp-cash-rate",
+   "iss-inflation-measure"
+  ],
+  "also": []
+ },
+ {
   "id": "n-022fd64761",
   "title": "Albanese had some wins this week — then inflation numbers landed with a thud",
   "date": "2026-11-26",
@@ -98,7 +127,12 @@ globalThis.DP_NEWS_ARCHIVE = [
    "mp-cash-rate",
    "iss-growth-real-gdp"
   ],
-  "also": []
+  "also": [
+   {
+    "outlet": "The Conversation",
+    "url": "https://theconversation.com/as-australias-jobless-rate-rises-talk-of-a-recession-is-growing-but-thats-premature-297290"
+   }
+  ]
  },
  {
   "id": "n-f7275af09f",
