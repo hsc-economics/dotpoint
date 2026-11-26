@@ -2,6 +2,20 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-b158ddd83f",
+  "title": "Spain’s Pablo Hernández de Cos wins race to be next ECB president",
+  "date": "2026-11-27",
+  "published": "2026-11-26T17:50:54Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/2026/nov/26/spain-pablo-hernandez-de-cos-next-ecb-president",
+  "desc": "Former Bank of Spain governor chosen to succeed Christine Lagarde after winning support of EU’s biggest countries",
+  "keyFigure": "",
+  "dotpoints": [
+   "mp-cash-rate"
+  ],
+  "also": []
+ },
+ {
   "id": "n-ef8c614634",
   "title": "Mandelson tried to set up meeting between Trump adviser and lobbying firm he held shares in",
   "date": "2026-11-27",
