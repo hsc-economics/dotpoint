@@ -2,6 +2,62 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-ef8c614634",
+  "title": "Mandelson tried to set up meeting between Trump adviser and lobbying firm he held shares in",
+  "date": "2026-11-27",
+  "published": "2026-11-26T13:11:39Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/politics/2026/nov/26/peter-mandelson-trump-adviser-meeting-lobbying-firm",
+  "desc": "Then ambassador to US wanted to discuss alternatives to World Trade Organisation in ‘under the radar’ meeting, documents reveal",
+  "keyFigure": "",
+  "dotpoints": [
+   "fin-role"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-d7e75c6069",
+  "title": "430,000 UK homeowners face £500-plus jump in monthly mortgage payments",
+  "date": "2026-11-26",
+  "published": "2026-11-26T12:44:46Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/money/2026/nov/26/430000-uk-homeowners-500-jump-monthly-mortgage-payments-bank-of-england-interest-rates",
+  "desc": "Bank of England warns of increases for millions coming off fixed deals over next three years as interest rates rise",
+  "keyFigure": "£500",
+  "dotpoints": [
+   "fin-housing"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-34ecedf13e",
+  "title": "EU leaders braced for clashes over Ukraine aid at budget talks",
+  "date": "2026-11-26",
+  "published": "2026-11-26T12:07:14Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/world/2026/nov/26/eu-leaders-braced-for-clashes-over-ukraine-aid-at-budget-talks",
+  "desc": "Slovakia, Hungary and Czechia want to opt out of €45bn Ukraine loan to fill funding black hole caused by Russia’s relentless attacks",
+  "keyFigure": "€45bn",
+  "dotpoints": [
+   "fp-stance"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-9e6c4c989e",
+  "title": "Coalition to team up with Labor to pass 20% gas reservation scheme for Australia’s largest exporters",
+  "date": "2026-11-26",
+  "published": "2026-11-26T09:33:06Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/australia-news/2026/nov/26/coalition-to-team-up-with-labor-to-pass-20-gas-reservation-scheme-for-australias-largest-exporters",
+  "desc": "Coalition to vote in Senate to pass government’s final major piece of legislation for 2026, denying Greens bid for 25% tax on exports",
+  "keyFigure": "20%",
+  "dotpoints": [
+   "int-trade"
+  ],
+  "also": []
+ },
+ {
   "id": "n-27d0f525dd",
   "title": "Trump tariff threat ‘unacceptable’, says Brazil, as China denounces levies as baseless",
   "date": "2026-11-26",
