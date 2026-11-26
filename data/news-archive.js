@@ -2,6 +2,76 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-27d0f525dd",
+  "title": "Trump tariff threat ‘unacceptable’, says Brazil, as China denounces levies as baseless",
+  "date": "2026-11-26",
+  "published": "2026-11-26T03:54:24Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/us-news/2026/nov/26/brazil-china-react-to-new-trump-tariffs-threat",
+  "desc": "Brazil indignant about proposed tariffs on sugar and aircraft, while Beijing says new levies amount to ‘political manipulation’",
+  "keyFigure": "",
+  "dotpoints": [
+   "glb-protection"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-3b9953572b",
+  "title": "Coalition would privatise Melbourne’s sewage treatment while selling state-owned land and renewables to fund Victorian election promises",
+  "date": "2026-11-26",
+  "published": "2026-11-26T02:35:09Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/australia-news/2026/nov/26/liberal-nationals-victoria-election-policy-costings-revealed-sewage-land-energy",
+  "desc": "Liberal and Nationals’ pre-election policy costings also reveal that ‘air rights’ between Richmond train station and the MCG would be sold",
+  "keyFigure": "",
+  "dotpoints": [
+   "env-targets"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-55b98d429e",
+  "title": "Australia projected to completely miss 2035 emissions target without new climate policies",
+  "date": "2026-11-26",
+  "published": "2026-11-26T02:26:10Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/australia-news/2026/nov/26/australia-projected-to-miss-2035-emissions-targets-climate-policies",
+  "desc": "New official projections show country nearly on track for 2030 goal but Chris Bowen warns of ‘undeniable headwinds’",
+  "keyFigure": "",
+  "dotpoints": [
+   "env-targets"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-e6367d0806",
+  "title": "Emissions fall, but not fast enough to meet climate target",
+  "date": "2026-11-26",
+  "published": "2026-11-26T01:50:51Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-26/australia-emissions-fall-short-2035-climate-target/107418552",
+  "desc": "Australia's greenhouse gas emissions have dropped by 1.3 per cent in the past year, but drastic cuts are necessary to reach the country's 2035 climate goal.",
+  "keyFigure": "1.3%",
+  "dotpoints": [
+   "env-targets"
+  ],
+  "also": []
+ },
+ {
+  "id": "n-057d766b9c",
+  "title": "Union warns of passenger delays as Virgin workers strike",
+  "date": "2026-11-26",
+  "published": "2026-11-25T20:27:06Z",
+  "outlet": "ABC News",
+  "url": "https://www.abc.net.au/news/2026-11-26/virgin-australia-workers-industrial-action/107428072",
+  "desc": "Short strikes will take place at four airports across Australia as part of an industrial relations stand-off between Virgin airline management and workers.",
+  "keyFigure": "",
+  "dotpoints": [
+   "lm-safety-net"
+  ],
+  "also": []
+ },
+ {
   "id": "n-cf1ea908a0",
   "title": "US stocks tumble as AI rout and Trump tariffs rattle markets",
   "date": "2026-11-26",
