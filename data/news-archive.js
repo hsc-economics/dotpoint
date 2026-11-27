@@ -2,6 +2,21 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-ce395d6dd1",
+  "title": "Banks may pass on £1.5bn tax rise to customers, warns Bank of England chief",
+  "date": "2026-11-27",
+  "published": "2026-11-27T10:10:29Z",
+  "outlet": "The Guardian",
+  "url": "https://www.theguardian.com/business/2026/nov/27/bank-tax-rise-customers-bank-of-england-andrew-bailey",
+  "desc": "Big lenders will aim to ‘protect their earnings’ from temporary increase in corporation tax surcharge, says Andrew Bailey",
+  "keyFigure": "£1.5bn",
+  "dotpoints": [
+   "fin-role",
+   "mp-cash-rate"
+  ],
+  "also": []
+ },
+ {
   "id": "n-a1e1f2b8b6",
   "title": "Faisal Islam: Why Trump's new tariffs are less of a threat",
   "date": "2026-11-27",
