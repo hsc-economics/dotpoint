@@ -2,6 +2,20 @@
 // original article; desc is the outlet's own one-line summary of it.
 globalThis.DP_NEWS_ARCHIVE = [
  {
+  "id": "n-a1e1f2b8b6",
+  "title": "Faisal Islam: Why Trump's new tariffs are less of a threat",
+  "date": "2026-11-27",
+  "published": "2026-11-26T19:55:58Z",
+  "outlet": "BBC News",
+  "url": "https://www.bbc.co.uk/news/articles/c6r7g4e3yep1o",
+  "desc": "Other countries have rerouted trade in response to his first tariff salvo, now they are looking beyond Trump's tenure.",
+  "keyFigure": "",
+  "dotpoints": [
+   "glb-protection"
+  ],
+  "also": []
+ },
+ {
   "id": "n-b158ddd83f",
   "title": "Spain’s Pablo Hernández de Cos wins race to be next ECB president",
   "date": "2026-11-27",
